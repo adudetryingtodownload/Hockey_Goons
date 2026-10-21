@@ -1,0 +1,1452 @@
+<title>Hockey Goons</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;600;800&display=swap">
+<style>
+/* Layout: one-screen arena. Scoreboard on top, the ice in the middle (your lineup or the fight), the bench tray below with the shop. Single committed look: night arena under the rink art. */
+:root {
+  --ink: #14161f;          /* outlines and dark text */
+  --board: #fbfaf6;        /* dasher-board white for cards and panels */
+  --board-2: #e9eef3;      /* ice-tinted panel fill */
+  --scoreboard: #1b1f2a;   /* scoreboard panel */
+  --led: #ffc23d;          /* scoreboard digits */
+  --goal-red: #e23b2e;     /* goal light: fight button, damage */
+  --blue-line: #2f6fc2;    /* toughness, selection */
+  --punch: #f2a81d;        /* punch badge */
+  --good: #2e9e5b;         /* buffs */
+  --muted: #5b6475;
+  --font-display: "Bungee", "Arial Black", Impact, sans-serif;
+  --font-body: "Rubik", "Segoe UI", system-ui, sans-serif;
+  --card-w: clamp(56px, 13vw, 128px);
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; background: #0e1420; color: var(--ink); font-family: var(--font-body);
+  overflow: hidden; -webkit-tap-highlight-color: transparent;
+}
+#app {
+  position: relative; height: 100%; display: grid; grid-template-rows: auto 1fr auto;
+  background: #0e1420;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
+
+/* ---------- Scoreboard ---------- */
+.scoreboard {
+  position: relative; z-index: 2; background: #0e1420; border-bottom: 3px solid var(--ink); display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.logo { font-family: var(--font-display); color: var(--board); font-size: clamp(18px, 3.2vw, 30px); line-height: 1; text-shadow: 3px 3px 0 var(--ink); letter-spacing: .5px; }
+.board {
+  display: flex; gap: 2px; background: var(--ink); border: 3px solid var(--ink); border-radius: 10px; overflow: hidden;
+  box-shadow: 4px 4px 0 rgba(0,0,0,.35);
+}
+.cell { background: var(--scoreboard); padding: 4px 12px 6px; display: flex; flex-direction: column; align-items: center; min-width: 52px; }
+.cell .k { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #9aa3b5; text-transform: uppercase; }
+.cell .v { font-family: var(--font-display); color: var(--led); font-size: clamp(16px, 2.6vw, 24px); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cell .v.red { color: #ff6b5e; }
+.champ-flag { font-family: var(--font-display); color: var(--ink); background: var(--led); padding: 2px 8px; border-radius: 6px; font-size: 12px; border: 2px solid var(--ink); }
+
+/* ---------- Stage ---------- */
+.stage { position: relative; z-index: 1; min-height: 0; overflow: hidden; background: #0e1420 var(--rink) center bottom / cover no-repeat; }
+.stage::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: linear-gradient(to bottom, rgba(10,14,24,.5), rgba(10,14,24,0) 45%);
+}
+.lineup {
+  position: absolute; left: 0; right: 0; bottom: 11%; z-index: 1; display: flex; justify-content: center; align-items: flex-end; gap: clamp(4px, 1.2vw, 14px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.lineup-label {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 2;
+  font-family: var(--font-display); color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: clamp(13px, 2vw, 18px); white-space: nowrap;
+}
+.slot {
+  width: var(--card-w); display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 0; position: relative;
+}
+.slot .pad {
+  width: 100%; aspect-ratio: 1 / 1.05; display: flex; align-items: flex-end; justify-content: center; border-radius: 14px;
+  border: 3px dashed rgba(255,255,255,.75); background: rgba(20,22,31,.18); position: relative; transition: transform .15s, background .15s;
+}
+.slot.filled .pad { border-color: transparent; background: transparent; }
+.slot .num { position: absolute; top: 6px; left: 0; right: 0; text-align: center; font-family: var(--font-display); color: rgba(255,255,255,.9); font-size: clamp(11px, 1.6vw, 15px); text-shadow: 2px 2px 0 var(--ink); }
+.slot.filled .num { display: none; }
+.slot img.sprite { width: 112%; max-width: none; filter: drop-shadow(0 6px 4px rgba(0,0,0,.35)); pointer-events: none; }
+.slot.selected .pad { transform: translateY(-8px); }
+.slot.selected .pad::after { content: ""; position: absolute; inset: -4px; border: 4px solid var(--led); border-radius: 16px; }
+.slot.target .pad { border-color: var(--led); background: rgba(255,194,61,.22); }
+.front-tag { font-family: var(--font-display); font-size: 10px; color: var(--ink); background: var(--led); border: 2px solid var(--ink); border-radius: 6px; padding: 0 5px; position: absolute; top: -10px; right: -4px; z-index: 2; }
+.coach-slot { margin-left: clamp(6px, 2vw, 24px); }
+.coach-slot img.sprite { width: 72%; }
+
+/* Stat badges */
+.stats { display: flex; gap: 4px; align-items: center; }
+.badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 4px;
+  border: 2.5px solid var(--ink); border-radius: 999px; font-family: var(--font-display); font-size: 14px; line-height: 1; color: var(--ink);
+  font-variant-numeric: tabular-nums; transition: transform .2s;
+}
+.badge.p { background: var(--punch); }
+.badge.t { background: #8fc2ff; border-radius: 8px 8px 14px 14px; }
+.badge.bump { transform: scale(1.35); }
+.level { display: flex; align-items: center; gap: 5px; min-height: 13px; font-size: 10px; font-weight: 800; color: var(--board); text-shadow: 1px 1px 0 var(--ink); }
+.lvl-pucks { display: inline-flex; gap: 3px; min-height: 13px; align-items: center; }
+.lvl-puck { width: 20px; height: 12px; border-radius: 50%; background: var(--ink); box-shadow: inset 0 -3px 0 #3a4152, 0 0 0 2px var(--led); }
+.pips { display: flex; gap: 2px; }
+.pips i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.35); border: 1.5px solid var(--ink); }
+.pips i.on { background: var(--led); }
+.gear-tags { display: flex; gap: 3px; min-height: 0; }
+.gear-tag { font-size: 9px; font-weight: 800; background: var(--board); border: 2px solid var(--ink); border-radius: 5px; padding: 0 4px; letter-spacing: .5px; }
+
+/* ---------- Tray (bench) ---------- */
+.tray {
+  position: relative; z-index: 2; background: var(--board); border-top: 4px solid var(--ink);
+  padding-block: 10px 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 10px;
+}
+.tray::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--led); border-bottom: 3px solid var(--ink); }
+.info { display: flex; align-items: center; gap: 10px; min-height: 40px; padding-top: 6px; }
+.info .title { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
+.info .text { font-size: 14px; color: var(--muted); min-width: 0; }
+.info .text b { color: var(--ink); }
+.shop-row { display: flex; gap: 12px; align-items: stretch; overflow-x: auto; padding-bottom: 2px; }
+.shop-group { display: flex; gap: 8px; align-items: stretch; }
+.shop-group + .shop-group { border-left: 3px dotted #c7ced8; padding-left: 12px; }
+.offer {
+  position: relative; width: clamp(72px, 11vw, 108px); flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--board-2); border: 3px solid var(--ink); border-radius: 12px; padding: 4px 4px 6px; box-shadow: 3px 3px 0 var(--ink);
+  transition: transform .12s, box-shadow .12s;
+}
+.offer:hover { transform: translateY(-2px); }
+.offer.selected { transform: translateY(-6px); box-shadow: 3px 9px 0 var(--ink); background: #fff3cf; }
+.offer.frozen { background: #d6ecff; }
+.offer.frozen::before { content: "FROZEN"; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 800; letter-spacing: 1px; background: var(--blue-line); color: #fff; border: 2px solid var(--ink); border-radius: 5px; padding: 0 4px; }
+.offer img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+.offer .name { font-size: 11px; font-weight: 800; text-align: center; line-height: 1.1; min-height: 2.2em; display: flex; align-items: center; }
+.offer .tier { position: absolute; top: 4px; left: 4px; font-family: var(--font-display); font-size: 10px; background: var(--board); border: 2px solid var(--ink); border-radius: 5px; padding: 0 4px; }
+.price { display: inline-flex; align-items: center; gap: 3px; font-family: var(--font-display); font-size: 12px; }
+.puck { width: 14px; height: 9px; border-radius: 50%; background: var(--ink); display: inline-block; box-shadow: inset 0 -2px 0 #3a4152; }
+.gear-art { width: 100%; aspect-ratio: 1; display: grid; place-items: center; }
+.gear-art svg { width: 70%; height: 70%; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+.btn {
+  border: 3px solid var(--ink); border-radius: 10px; background: var(--board); padding: 8px 14px; font-weight: 800; font-size: 14px;
+  box-shadow: 3px 3px 0 var(--ink); display: inline-flex; align-items: center; gap: 6px; transition: transform .1s, box-shadow .1s;
+}
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.fight { background: var(--goal-red); color: #fff; font-family: var(--font-display); font-weight: 400; font-size: 18px; padding: 10px 22px; text-shadow: 2px 2px 0 var(--ink); }
+.bottom { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+/* ---------- Fight ---------- */
+.fight-layer { position: absolute; inset: 0; }
+.team-name {
+  position: absolute; top: 12px; font-family: var(--font-display); color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: clamp(14px, 2.4vw, 22px); z-index: 3;
+}
+.team-name.left { left: max(16px, env(safe-area-inset-left, 0px)); }
+.team-name.right { right: max(16px, env(safe-area-inset-right, 0px)); }
+/* Coaches stand on each team's bench and only come onto the ice when both teams are knocked out. */
+/* Bench coaches. The box is one standing-coach tall; on the bench the boards hide everything below his waist. */
+.bench-coach { position: absolute; z-index: 1; pointer-events: none; clip-path: inset(-80% -250% 0 -250%); transition: left .6s cubic-bezier(.3,1.2,.5,1), top .6s cubic-bezier(.3,1.2,.5,1), width .6s, height .6s, transform .25s, opacity .5s; }
+.bench-coach.walking { transition: left 1.1s linear, top .6s, width .6s, height .6s; }
+.bench-coach .fig { position: absolute; left: 0; right: 0; top: 0; }
+.bench-coach.face-left .fig { transform: scaleX(-1); }
+/* Every pose gets an explicit width and height (from its own shape) so no browser can squeeze it. */
+.bench-coach .fig img { position: absolute; left: 50%; bottom: 0; translate: -50% 0; max-width: none; max-height: none;
+  height: calc(var(--h) * var(--k, 1)); width: calc(var(--h) * var(--k, 1) * var(--ar)); transition: transform .18s; transform-origin: 50% 100%; }
+.bench-coach[data-pose="ko"] .fig img { transform: scaleX(-1); }
+.bench-coach.walking .fig img { animation: coach-bob .36s ease-in-out infinite alternate; }
+@keyframes coach-bob { from { translate: 0 0; rotate: -2deg; } to { translate: 0 -4%; rotate: 2deg; } }
+.bench-coach.react .fig img { animation: coach-react .3s cubic-bezier(.3,1.6,.5,1); }
+@keyframes coach-react { from { scale: .85; } }
+.bench-coach.on-ice { clip-path: none; z-index: 12; }
+.bench-coach.on-ice .fig img { filter: drop-shadow(0 6px 4px rgba(0,0,0,.35)); }
+.bench-coach.lunge .fig img { transform: translateX(12%) rotate(6deg); }
+.bench-coach.ko { opacity: 0; transition: transform .7s ease-in, opacity .7s ease-in; }
+.bench-coach.left.ko { transform: translate(-130%, -60%) rotate(-160deg); }
+.bench-coach.right.ko { transform: translate(130%, -60%) rotate(160deg); }
+.fighter { position: absolute; bottom: 12%; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: left .45s cubic-bezier(.3,1.3,.5,1), transform .25s, opacity .3s; }
+.fighter .body { position: relative; width: 100%; transition: transform .18s; transform-origin: 50% 100%; }
+.fighter img.atk { position: absolute; left: 50%; bottom: 0; translate: -50% 0; max-width: none; opacity: 0; width: calc(var(--fit, 1) * 100%); }
+.fighter.front img.atk { width: calc(var(--fit-front, var(--fit, 1)) * 100%); }
+.fighter.attacking img.atk { opacity: 1; }
+.fighter.attacking img.idle { opacity: 0; }
+.fighter img { width: 100%; max-width: none; filter: drop-shadow(0 6px 4px rgba(0,0,0,.35)); }
+.fighter.enemy .body { transform: scaleX(-1); }
+.fighter.lunge .body { transform: translateX(28%) rotate(8deg); }
+.fighter.enemy.lunge .body { transform: scaleX(-1) translateX(28%) rotate(8deg); }
+.fighter.hit .body { animation: shake .35s; }
+.fighter.enemy.hit .body { animation: shake-enemy .35s; }
+.fighter.pulse .body { animation: pulse .5s; }
+.fighter.enemy.pulse .body { animation: pulse-enemy .5s; }
+.fighter.glow img { filter: drop-shadow(0 0 10px var(--good)) drop-shadow(0 6px 4px rgba(0,0,0,.35)); }
+.fighter.ko { transition: transform .6s ease-in, opacity .6s ease-in; opacity: 0; }
+.fighter.entering { opacity: 0; transform: translateY(-60%) scale(.5); }
+.fighter.ko.mine { transform: translate(-120%, -70%) rotate(-200deg); }
+.fighter.ko.theirs { transform: translate(120%, -70%) rotate(200deg); }
+@keyframes shake { 0%,100% { transform: none } 25% { transform: translateX(-10%) rotate(-6deg) } 60% { transform: translateX(6%) rotate(3deg) } }
+@keyframes shake-enemy { 0%,100% { transform: scaleX(-1) } 25% { transform: scaleX(-1) translateX(-10%) rotate(-6deg) } 60% { transform: scaleX(-1) translateX(6%) rotate(3deg) } }
+@keyframes pulse { 0%,100% { transform: none } 40% { transform: scale(1.15) translateY(-6%) } }
+@keyframes pulse-enemy { 0%,100% { transform: scaleX(-1) } 40% { transform: scaleX(-1) scale(1.15) translateY(-6%) } }
+.pop {
+  position: absolute; font-family: var(--font-display); font-size: clamp(20px, 3.2vw, 34px); color: #fff; z-index: 40; pointer-events: none; translate: -50% 0; white-space: nowrap;
+  text-shadow: 2px 2px 0 var(--ink), -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink); animation: rise .9s ease-out forwards;
+}
+.pop.dmg { color: #ff6b5e; }
+.pop.buff { color: #8ff0b0; }
+@keyframes rise { from { transform: translateY(0) scale(.6); opacity: 0 } 20% { transform: translateY(-10px) scale(1.15); opacity: 1 } to { transform: translateY(-46px) scale(1); opacity: 0 } }
+.puck-shot {
+  position: absolute; z-index: 35; width: 20px; height: 12px; border-radius: 50%; background: var(--ink); pointer-events: none;
+  box-shadow: inset 0 -3px 0 #3a4152, 0 0 0 2px var(--board); translate: -50% -50%;
+}
+:root { --rope: url("data:image/svg+xml;utf8,<svg viewBox='0 0 120 50' xmlns='http://www.w3.org/2000/svg'><ellipse cx='60' cy='25' rx='54' ry='18' fill='none' stroke='%231b1f2a' stroke-width='11'/><ellipse cx='60' cy='25' rx='54' ry='18' fill='none' stroke='%23b98a4e' stroke-width='7'/><ellipse cx='60' cy='25' rx='54' ry='18' fill='none' stroke='%237a5528' stroke-width='7' stroke-dasharray='3 6'/><path d='M104 32 q10 6 6 16' fill='none' stroke='%231b1f2a' stroke-width='9' stroke-linecap='round'/><path d='M104 32 q10 6 6 16' fill='none' stroke='%23b98a4e' stroke-width='5' stroke-linecap='round'/></svg>"); }
+.fighter .body::after {
+  content: ""; position: absolute; left: 12%; right: 12%; top: 48%; aspect-ratio: 120 / 50; pointer-events: none;
+  background: var(--rope) center / contain no-repeat; opacity: 0; transform: scale(1.4); transition: opacity .2s, transform .25s cubic-bezier(.3,1.4,.5,1);
+}
+.fighter.tied .body::after { opacity: 1; transform: scale(1); }
+.lasso-shot { position: absolute; z-index: 35; width: 70px; pointer-events: none; translate: -50% -50%; animation: glove-spin .35s linear infinite; }
+.heal-shot { position: absolute; z-index: 35; width: 40px; pointer-events: none; translate: -50% -50%; filter: drop-shadow(0 0 8px #8ff0b0); animation: heal-pulse .3s ease-in-out infinite alternate; }
+@keyframes heal-pulse { to { scale: 1.15; } }
+.bolt-shot { position: absolute; z-index: 35; width: 44px; pointer-events: none; translate: -50% -50%; filter: drop-shadow(0 0 6px #ffe66b); animation: bolt-flicker .12s steps(2) infinite; }
+@keyframes bolt-flicker { 50% { scale: 1.15 .9; filter: drop-shadow(0 0 10px #fff3a0); } }
+.glove-shot {
+  position: absolute; z-index: 35; width: 58px; pointer-events: none; translate: -50% -50%;
+  animation: glove-spin .45s linear infinite; filter: drop-shadow(2px 3px 0 rgba(27,31,42,.35));
+}
+.enemy-throw:root { --rope: url("data:image/svg+xml;utf8,<svg viewBox='0 0 120 50' xmlns='http://www.w3.org/2000/svg'><ellipse cx='60' cy='25' rx='54' ry='18' fill='none' stroke='%231b1f2a' stroke-width='11'/><ellipse cx='60' cy='25' rx='54' ry='18' fill='none' stroke='%23b98a4e' stroke-width='7'/><ellipse cx='60' cy='25' rx='54' ry='18' fill='none' stroke='%237a5528' stroke-width='7' stroke-dasharray='3 6'/><path d='M104 32 q10 6 6 16' fill='none' stroke='%231b1f2a' stroke-width='9' stroke-linecap='round'/><path d='M104 32 q10 6 6 16' fill='none' stroke='%23b98a4e' stroke-width='5' stroke-linecap='round'/></svg>"); }
+.fighter .body::after {
+  content: ""; position: absolute; left: 12%; right: 12%; top: 48%; aspect-ratio: 120 / 50; pointer-events: none;
+  background: var(--rope) center / contain no-repeat; opacity: 0; transform: scale(1.4); transition: opacity .2s, transform .25s cubic-bezier(.3,1.4,.5,1);
+}
+.fighter.tied .body::after { opacity: 1; transform: scale(1); }
+.lasso-shot { position: absolute; z-index: 35; width: 70px; pointer-events: none; translate: -50% -50%; animation: glove-spin .35s linear infinite; }
+.heal-shot { position: absolute; z-index: 35; width: 40px; pointer-events: none; translate: -50% -50%; filter: drop-shadow(0 0 8px #8ff0b0); animation: heal-pulse .3s ease-in-out infinite alternate; }
+@keyframes heal-pulse { to { scale: 1.15; } }
+.bolt-shot { position: absolute; z-index: 35; width: 44px; pointer-events: none; translate: -50% -50%; filter: drop-shadow(0 0 6px #ffe66b); animation: bolt-flicker .12s steps(2) infinite; }
+@keyframes bolt-flicker { 50% { scale: 1.15 .9; filter: drop-shadow(0 0 10px #fff3a0); } }
+.glove-shot { scale: -1 1; }
+@keyframes glove-spin { to { rotate: 360deg; } }
+.wham { position: absolute; z-index: 4; width: clamp(80px, 12vw, 140px); pointer-events: none; animation: wham .55s ease-out forwards; }
+@keyframes wham { from { transform: translate(-50%, -50%) scale(.3) rotate(-10deg); opacity: 0 } 30% { transform: translate(-50%, -50%) scale(1.1) rotate(4deg); opacity: 1 } to { transform: translate(-50%, -50%) scale(1); opacity: 0 } }
+.ticker {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 4; max-width: min(92%, 640px); width: max-content;
+  background: var(--board); border: 3px solid var(--ink); border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 14px; text-align: center; box-shadow: 3px 3px 0 var(--ink);
+}
+.fight-controls { display: flex; gap: 8px; justify-content: center; }
+.banner {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 20; text-align: center; display: grid; gap: 10px; justify-items: center;
+}
+.banner .big { font-family: var(--font-display); font-size: clamp(42px, 10vw, 96px); line-height: 1; color: var(--board); text-shadow: 5px 5px 0 var(--ink); animation: slam .45s cubic-bezier(.2,1.6,.4,1); }
+.banner .big.win { color: var(--led); }
+.banner .big.loss { color: #ff6b5e; }
+.banner .sub { font-weight: 800; color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: 16px; }
+@keyframes slam { from { transform: scale(2.2); opacity: 0 } to { transform: none; opacity: 1 } }
+
+/* ---------- Drag and drop ---------- */
+.drag-ghost { position: fixed; z-index: 50; pointer-events: none; width: var(--card-w); transform: translate(-50%, -60%) rotate(-4deg) scale(1.1); filter: drop-shadow(4px 8px 0 rgba(20,22,31,.45)); }
+.drag-ghost img, .drag-ghost svg { width: 100%; display: block; }
+.dragging-src { opacity: .35; }
+.slot.drop-ok .pad { border: 3px dashed var(--led); background: rgba(255,194,61,.2); }
+.slot.filled.drop-ok .pad { border-style: solid; }
+.slot.drop-hover .pad { border: 4px solid var(--led); background: rgba(255,194,61,.42); transform: translateY(-6px) scale(1.04); }
+.slot.drop-insert.drop-hover .pad::before { content: "SLIDE IN"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); z-index: 3; font-family: var(--font-display); font-size: 11px; white-space: nowrap; background: var(--board); border: 2px solid var(--ink); border-radius: 6px; padding: 0 6px; }
+.slot.drop-merge .pad::before { content: "STACK"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); z-index: 3; font-family: var(--font-display); font-size: 11px; background: var(--led); border: 2px solid var(--ink); border-radius: 6px; padding: 0 6px; }
+.btn.drop-ok { outline: 3px dashed var(--goal-red); outline-offset: 2px; }
+.btn.drop-hover { background: var(--goal-red); color: #fff; transform: scale(1.08); }
+.offer, .slot.filled { touch-action: none; }
+.offer img, .slot img, .gear-art svg { -webkit-user-drag: none; user-select: none; }
+.shop-row .offer { touch-action: pan-x; }
+body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select: none; }
+
+/* ---------- Ability tip ---------- */
+.tip {
+  position: absolute; z-index: 45; width: max-content; max-width: min(260px, 80vw); pointer-events: none;
+  background: var(--board); border: 3px solid var(--ink); border-radius: 12px; box-shadow: 3px 3px 0 var(--ink); padding: 8px 11px 9px;
+  display: grid; gap: 3px; transform: translate(-50%, calc(-100% - 12px));
+}
+.tip::after { content: ""; position: absolute; left: var(--arrow, 50%); bottom: -11px; width: 14px; height: 14px; background: var(--board); border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
+.tip .tn { font-family: var(--font-display); font-size: 15px; line-height: 1.1; }
+.tip .tl { font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
+.tip .tt { font-size: 13.5px; line-height: 1.35; }
+.fighter { cursor: help; }
+
+/* ---------- Toast and end screen ---------- */
+.toast {
+  position: absolute; left: 50%; top: 70px; transform: translateX(-50%); z-index: 20; background: var(--board); border: 3px solid var(--ink); border-radius: 10px;
+  padding: 8px 14px; font-weight: 600; box-shadow: 3px 3px 0 var(--ink); max-width: min(90%, 520px); text-align: center; transition: opacity .25s;
+}
+.toast.err { background: #ffe1dc; }
+.end {
+  position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(10,14,24,.72);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.end .card { background: var(--board); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 6px 6px 0 var(--ink); padding: 22px 26px; display: grid; gap: 12px; justify-items: center; text-align: center; max-width: 420px; }
+.end h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 6vw, 44px); line-height: 1.05; text-wrap: balance; }
+.end p { margin: 0; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .logo { display: none; }
+  .cell { min-width: 44px; padding: 3px 8px 5px; }
+  .info .title { font-size: 14px; }
+  .info .text { font-size: 13px; }
+  .badge { min-width: 20px; height: 20px; font-size: 11px; border-width: 2px; }
+  .btn { padding: 7px 10px; font-size: 13px; }
+  .btn.fight { font-size: 16px; padding: 8px 16px; }
+}
+
+/* ---------- Menus: title, goon packs, settings ---------- */
+.home-btn { border: 3px solid var(--ink); border-radius: 9px; background: var(--board); font-weight: 800; font-size: 13px; padding: 5px 10px; box-shadow: 2px 2px 0 rgba(0,0,0,.45); }
+.home-btn:disabled { opacity: .4; cursor: default; }
+.sb-left { display: flex; align-items: center; gap: 12px; }
+.menu { position: absolute; inset: 0; z-index: 60; overflow: hidden; background: #0e1420 var(--rink) center bottom / cover no-repeat; color: var(--board); }
+.menu[hidden] { display: none; }
+.menu::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(10,14,24,.78), rgba(10,14,24,.35) 55%, rgba(10,14,24,.15)); pointer-events: none; }
+.menu > * { position: relative; }
+
+.title-screen { height: 100%; display: grid; grid-template-rows: 1fr auto 1fr; justify-items: center; padding: 16px; box-sizing: border-box; }
+.game-logo { grid-row: 2; margin: 0; display: grid; justify-items: center; font-family: var(--font-display); font-weight: 400; line-height: .9; transform: rotate(-4deg); animation: logo-in .6s cubic-bezier(.2,1.5,.4,1) both; }
+.game-logo span { display: block; color: var(--led); font-size: clamp(54px, 13vw, 132px); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill;
+  text-shadow: 0 0 0 var(--ink), 4px 4px 0 var(--ink), 7px 7px 0 var(--ink), -3px -3px 0 var(--board), 3px -3px 0 var(--board), -3px 3px 0 var(--board); }
+.game-logo span + span { color: var(--goal-red); margin-top: -.08em; font-size: clamp(64px, 16vw, 160px); }
+@keyframes logo-in { from { transform: rotate(-12deg) scale(.4); opacity: 0 } to { transform: rotate(-4deg) scale(1); opacity: 1 } }
+.tagline { grid-row: 3; align-self: start; margin: 10px 0 0; font-weight: 800; font-size: clamp(14px, 2.2vw, 18px); text-shadow: 2px 2px 0 var(--ink); text-align: center; }
+.menu-buttons { grid-row: 3; align-self: start; margin-top: 48px; display: grid; gap: 12px; width: min(320px, 100%); z-index: 2; }
+.menu-buttons .mb { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 3vw, 22px); color: var(--ink); background: var(--board);
+  border: 4px solid var(--ink); border-radius: 14px; padding: 10px 18px; box-shadow: 5px 5px 0 var(--ink); display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  transition: transform .12s, box-shadow .12s, background .12s; }
+.menu-buttons .mb:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); background: #fff3cf; }
+.menu-buttons .mb:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
+.menu-buttons .mb.primary { background: var(--goal-red); color: #fff; text-shadow: 2px 2px 0 var(--ink); }
+.menu-buttons .mb.primary:hover { background: #f04c3f; }
+.menu-buttons .mb:disabled { opacity: .5; cursor: default; }
+.mb small { font-family: var(--font-body); font-weight: 800; font-size: 12px; color: var(--muted); }
+.mb.primary small { color: #ffe1dc; text-shadow: none; }
+.title-goon { position: absolute; bottom: 2%; width: clamp(120px, 24vw, 300px); pointer-events: none; filter: drop-shadow(0 8px 6px rgba(0,0,0,.45)); z-index: 1; }
+.title-goon.left { left: 3%; animation: bob 2.4s ease-in-out infinite; }
+.title-goon.right { right: 3%; transform: scaleX(-1); animation: bob-flip 2.4s ease-in-out infinite .6s; }
+@keyframes bob { 50% { translate: 0 -6px; } }
+@keyframes bob-flip { 50% { translate: 0 -6px; } }
+
+.menu-page { height: 100%; display: grid; grid-template-rows: auto 1fr; }
+.menu-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px max(16px, env(safe-area-inset-left, 0px)); background: rgba(14,20,32,.88); border-bottom: 3px solid var(--ink); }
+.menu-head .btn { color: var(--ink); }
+.menu-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(22px, 4vw, 34px); color: var(--led); text-shadow: 3px 3px 0 var(--ink); }
+.menu-head .sub { color: #c9d1de; font-weight: 600; font-size: 14px; }
+.menu-scroll { overflow-y: auto; padding: 24px max(16px, env(safe-area-inset-left, 0px)) 40px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.chip { border: 3px solid var(--ink); border-radius: 999px; background: var(--board); color: var(--ink); font-weight: 800; font-size: 13px; padding: 4px 12px; box-shadow: 2px 2px 0 var(--ink); }
+.chip[aria-pressed="true"] { background: var(--led); }
+
+/* Packs */
+.packs { display: flex; gap: 36px; flex-wrap: wrap; justify-content: center; padding-top: 12px; }
+.pack { --foil: linear-gradient(150deg, #1c3f8a, #2a7fc2 35%, #1b2f66 60%, #7a1f2e); position: relative; width: clamp(190px, 26vw, 250px); aspect-ratio: 5 / 7; border: 0; padding: 0; background: none; color: var(--board);
+  transition: transform .2s cubic-bezier(.3,1.4,.5,1); filter: drop-shadow(6px 8px 0 rgba(0,0,0,.45)); }
+.pack:hover:not(:disabled) { transform: translateY(-8px) rotate(-2deg); }
+.pack .wrap { position: absolute; inset: 0; background: var(--foil); border: 4px solid var(--ink); border-radius: 10px; overflow: hidden; display: grid; grid-template-rows: auto auto 1fr auto; justify-items: center; padding: 26px 12px 22px; box-sizing: border-box;
+  clip-path: polygon(0 3%, 4% 0, 8% 3%, 12% 0, 16% 3%, 20% 0, 24% 3%, 28% 0, 32% 3%, 36% 0, 40% 3%, 44% 0, 48% 3%, 52% 0, 56% 3%, 60% 0, 64% 3%, 68% 0, 72% 3%, 76% 0, 80% 3%, 84% 0, 88% 3%, 92% 0, 96% 3%, 100% 0, 100% 100%, 96% 97%, 92% 100%, 88% 97%, 84% 100%, 80% 97%, 76% 100%, 72% 97%, 68% 100%, 64% 97%, 60% 100%, 56% 97%, 52% 100%, 48% 97%, 44% 100%, 40% 97%, 36% 100%, 32% 97%, 28% 100%, 24% 97%, 20% 100%, 16% 97%, 12% 100%, 8% 97%, 4% 100%, 0 97%); }
+.pack .wrap::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.35) 45%, transparent 60%); background-size: 250% 100%; animation: foil 3.5s linear infinite; pointer-events: none; }
+@keyframes foil { from { background-position: 150% 0 } to { background-position: -100% 0 } }
+.pack .brand { font-family: var(--font-display); font-size: 13px; letter-spacing: 1px; color: var(--board); text-shadow: 2px 2px 0 var(--ink); }
+.pack .season { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); line-height: .95; color: var(--led); text-shadow: 3px 3px 0 var(--ink); text-align: center; margin-top: 4px; }
+.pack .faces { position: relative; width: 100%; align-self: end; height: 62%; }
+.pack .faces img { position: absolute; bottom: 0; width: 62%; filter: drop-shadow(0 4px 3px rgba(0,0,0,.4)); }
+.pack .faces img:nth-child(1) { left: -8%; transform: rotate(-8deg); }
+.pack .faces img:nth-child(2) { right: -8%; transform: scaleX(-1) rotate(-8deg); }
+.pack .faces img:nth-child(3) { left: 19%; width: 66%; z-index: 1; }
+.pack .count { font-weight: 800; font-size: 13px; background: var(--ink); border-radius: 999px; padding: 3px 12px; margin-top: 6px; }
+.pack.locked { --foil: linear-gradient(150deg, #3a4152, #5b6475 50%, #2a2f3e); cursor: default; }
+.pack.locked .season { color: #c9d1de; }
+.pack.locked .lock { align-self: center; font-family: var(--font-display); font-size: 48px; color: #8a93a5; text-shadow: 3px 3px 0 var(--ink); }
+
+/* Hockey cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+.hcard { min-width: 0; --tier: #2e9e5b; background: var(--board); color: var(--ink); border: 3px solid var(--ink); border-radius: 14px; padding: 7px; box-shadow: 5px 5px 0 rgba(0,0,0,.45);
+  transition: transform .15s; animation: card-in .35s both; }
+.hcard:hover { transform: translateY(-4px) rotate(-1deg); }
+@keyframes card-in { from { opacity: 0; transform: translateY(14px) } }
+.hcard.t2 { --tier: #2f6fc2; } .hcard.t3 { --tier: #c2372e; } .hcard.t4 { --tier: #6a3fa0; }
+.hc-top .pos { background: var(--led); color: var(--ink); text-shadow: none; border: 2px solid var(--ink); border-radius: 5px; padding: 0 5px; font-size: 10px; margin-left: 4px; }
+.hc-frame { border: 3px solid var(--ink); border-radius: 9px; overflow: hidden; background: var(--tier); display: grid; grid-template-columns: minmax(0, 1fr); }
+.hc-top { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; font-family: var(--font-display); font-size: 12px; color: #fff; text-shadow: 1px 1px 0 var(--ink); }
+.hc-art { position: relative; margin: 0 6px; aspect-ratio: 1; background: radial-gradient(circle at 50% 65%, #f4f9fd, #cfe2f1); border: 3px solid var(--ink); border-radius: 6px; overflow: hidden; }
+.hc-art::before { content: ""; position: absolute; left: 0; right: 0; top: 30%; height: 5px; background: #3a6fd8; opacity: .55; }
+.hc-art::after { content: ""; position: absolute; left: 0; right: 0; top: 62%; height: 4px; background: #d6453b; opacity: .55; }
+.hc-art img { position: absolute; inset: 6% 4% 2%; width: 92%; height: 92%; object-fit: contain; object-position: bottom; z-index: 1; transition: opacity .15s; }
+.hc-art img.atk { opacity: 0; }
+.hcard:hover .hc-art img.atk { opacity: 1; }
+.hcard:hover .hc-art img.idle.has-atk { opacity: 0; }
+.hc-name { font-family: var(--font-display); font-size: 15px; line-height: 1.05; color: #fff; text-shadow: 2px 2px 0 var(--ink); padding: 7px 8px 6px; text-align: center; text-wrap: balance; min-height: 2.1em; display: grid; place-items: center; }
+.hc-body { background: var(--board); padding: 8px; display: grid; gap: 6px; border-top: 3px solid var(--ink); }
+.hc-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 11px; font-weight: 800; color: var(--muted); }
+.hc-stats span.st { display: inline-flex; align-items: center; gap: 4px; }
+.hc-stats .badge { position: static; }
+.hc-ability { margin: 0; font-size: 12.5px; line-height: 1.35; }
+
+/* Settings */
+.settings { max-width: 520px; margin: 0 auto; display: grid; gap: 12px; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--board); color: var(--ink); border: 3px solid var(--ink); border-radius: 12px; padding: 12px 16px; box-shadow: 4px 4px 0 rgba(0,0,0,.45); }
+.set-row b { font-family: var(--font-display); font-weight: 400; font-size: 17px; }
+.set-row small { display: block; color: var(--muted); font-weight: 600; }
+.switch { width: 52px; height: 30px; border-radius: 999px; border: 3px solid var(--ink); background: #c7ced8; position: relative; flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--board); border: 2px solid var(--ink); box-sizing: border-box; }
+.soon { font-size: 11px; font-weight: 800; background: var(--led); border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); white-space: nowrap; }
+@media (max-width: 640px) {
+  .lvl-puck { width: 13px; height: 8px; box-shadow: inset 0 -2px 0 #3a4152, 0 0 0 1.5px var(--led); }
+  .level { gap: 3px; min-height: 9px; }
+  .pips i { width: 5px; height: 5px; }
+  .game-logo span { font-size: 19vw; }
+  .game-logo span + span { font-size: 23vw; }
+  .menu-buttons { margin-top: 36px; }
+  .title-goon { width: 30vw; opacity: .9; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .hc-name { font-size: 13px; }
+  .hc-ability { font-size: 11.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+
+<div id="app">
+  <header class="scoreboard">
+    <div class="sb-left"><button class="home-btn" id="to-menu">Menu</button><div class="logo">Hockey Goons</div></div>
+    <div class="board" aria-label="Scoreboard">
+      <div class="cell"><span class="k">Round</span><span class="v" id="sb-round">1</span></div>
+      <div class="cell"><span class="k">Wins</span><span class="v" id="sb-wins">0/9</span></div>
+      <div class="cell"><span class="k">Losses</span><span class="v red" id="sb-losses">0/5</span></div>
+      <div class="cell"><span class="k">Pucks</span><span class="v" id="sb-pucks">10</span></div>
+    </div>
+  </header>
+  <main class="stage" id="stage"></main>
+  <section class="tray" id="tray"></section>
+  <div class="toast" id="toast" hidden></div>
+  <div class="tip" id="tip" role="tooltip" hidden></div>
+  <div class="menu" id="menu" hidden></div>
+</div>
+
+<script>
+/*@@ENGINE@@*/
+</script>
+<script>
+const ART = /*@@ASSETS@@*/;
+document.getElementById("stage").style.setProperty("--rink", `url(${ART.rink})`);
+document.getElementById("menu").style.setProperty("--rink", `url(${ART.rink})`);
+
+const { GOON_BY_ID, GEAR_BY_ID, GOON_COST, GEAR_COST, COACH_COST, ROLL_COST, WINS_TO_CHAMPIONSHIP, LOSSES_TO_END, LINEUP_SLOTS, MAX_COACHES,
+  startRun, playRound, buyGoon, buyGear, buyCoach, sell, move, roll, freeze, goonStats, levelForCopies, saveRun, loadRun, GOONS } = window.HG;
+
+const $ = (id) => document.getElementById(id);
+const stage = $("stage"), tray = $("tray");
+let run, p, sel = null, busy = false, speed = 1, skipping = false;
+
+const GEAR_ICONS = {
+  tape: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="#fbfaf6" stroke="#14161f" stroke-width="3"/><circle cx="20" cy="20" r="6" fill="#e9eef3" stroke="#14161f" stroke-width="3"/><path d="M31 27 L38 33" stroke="#14161f" stroke-width="5" stroke-linecap="round"/></svg>',
+  ice: '<svg viewBox="0 0 40 40"><rect x="6" y="10" width="28" height="24" rx="8" fill="#8fc2ff" stroke="#14161f" stroke-width="3"/><rect x="13" y="5" width="14" height="8" rx="2" fill="#2f6fc2" stroke="#14161f" stroke-width="3"/><path d="M14 20 l4 4 M22 18 l4 4" stroke="#fbfaf6" stroke-width="3" stroke-linecap="round"/></svg>',
+  drink: '<svg viewBox="0 0 40 40"><path d="M12 10 h16 l-2 26 h-12 z" fill="#2e9e5b" stroke="#14161f" stroke-width="3" stroke-linejoin="round"/><rect x="14" y="4" width="12" height="6" rx="1" fill="#ffc23d" stroke="#14161f" stroke-width="3"/><path d="M21 15 l-4 8 h5 l-3 7" stroke="#ffc23d" stroke-width="3" fill="none" stroke-linejoin="round"/></svg>',
+  mouthguard: '<svg viewBox="0 0 40 40"><path d="M5 18 Q20 6 35 18 Q35 30 20 31 Q5 30 5 18 Z" fill="#e23b2e" stroke="#14161f" stroke-width="3" stroke-linejoin="round"/><path d="M11 20 Q20 14 29 20" stroke="#fbfaf6" stroke-width="3" fill="none" stroke-linecap="round"/></svg>',
+  peptalk: '<svg viewBox="0 0 40 40"><rect x="8" y="6" width="24" height="30" rx="3" fill="#fbfaf6" stroke="#14161f" stroke-width="3"/><rect x="14" y="3" width="12" height="7" rx="2" fill="#9aa3b5" stroke="#14161f" stroke-width="3"/><path d="M13 17 h14 M13 23 h14 M13 29 h8" stroke="#2f6fc2" stroke-width="3" stroke-linecap="round"/></svg>',
+};
+const WHAM = '<svg viewBox="0 0 160 120"><path d="M80 6 L94 36 L128 22 L112 50 L152 60 L112 72 L128 102 L94 86 L80 114 L66 86 L32 102 L48 72 L8 60 L48 50 L32 22 L66 36 Z" fill="#ffc23d" stroke="#14161f" stroke-width="6" stroke-linejoin="round"/><text x="80" y="68" text-anchor="middle" font-family="Bungee, Arial Black, sans-serif" font-size="24" fill="#14161f">WHAM!</text></svg>';
+
+// Attack poses: shown while a goon throws his punch. The number sizes the pose so his head matches his standing art.
+const ATTACK_FIT = { eddie: 1.0, larry: 1.15, tommy: 1.05, dusty: 1.0, randy: 0.85, stan: 0.88, hammer: 1.05, knuckles: 1.0, sal: 1.0, moose: 1.2, gus: 1.0, mcgraw: 0.92, sam: 0.72, walsh: 0.85, brick: 1.3, pete: 1.0, craig: 1.0, ike: 1.0, richard: 1.2, kowalski: 1.0, otto: 1.0, sid: 1.25, willie: 1.05, henry: 1.15, frankie: 0.82, ted: 1.2, sebastien: 1.1, twins: 0.75, twin: 1.0, doc: 1.1, glen: 1.3, zeke: 1.15, bertrand: 0.9, mahoney: 1.1, igor: 1.05 };
+const HEAL_SVG = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="42" height="42" rx="10" fill="#fbfaf6" stroke="#14161f" stroke-width="4"/><path d="M19 11 h10 v8 h8 v10 h-8 v8 h-10 v-8 h-8 v-10 h8 z" fill="#e23b2e" stroke="#14161f" stroke-width="3" stroke-linejoin="round"/></svg>`;
+const BOLT_SVG = `<svg viewBox="0 0 40 60" xmlns="http://www.w3.org/2000/svg"><path d="M24 2 L6 34 H19 L14 58 L35 22 H22 L28 2 Z" fill="#ffd93b" stroke="#14161f" stroke-width="4" stroke-linejoin="round"/><path d="M23 9 L13 29 H22" fill="none" stroke="#fff6c2" stroke-width="3" stroke-linecap="round"/></svg>`;
+const ROPE_SVG = `<svg viewBox="0 0 120 50" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="25" rx="54" ry="18" fill="none" stroke="#1b1f2a" stroke-width="11"/><ellipse cx="60" cy="25" rx="54" ry="18" fill="none" stroke="#b98a4e" stroke-width="7"/><ellipse cx="60" cy="25" rx="54" ry="18" fill="none" stroke="#7a5528" stroke-width="7" stroke-dasharray="3 6"/><path d="M104 32 q10 6 6 16" fill="none" stroke="#1b1f2a" stroke-width="9" stroke-linecap="round"/><path d="M104 32 q10 6 6 16" fill="none" stroke="#b98a4e" stroke-width="5" stroke-linecap="round"/></svg>`;
+// Goons whose attack pose needs a different size when they stand in the front slot.
+const ATTACK_FIT_FRONT = { frankie: 0.95 };
+const hasAttack = (id) => !!ART[`${id}-attack`];
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const priceTag = (n) => `<span class="price"><span class="puck"></span>${n}</span>`;
+
+function toast(msg, isErr) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast" + (isErr ? " err" : "");
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => (t.hidden = true), 2200);
+}
+
+// Remember where each goon stood, so the lineup can slide smoothly into its new order.
+let flipFrom = null;
+function prepFlip() {
+  flipFrom = new Map();
+  stage.querySelectorAll("[data-slot]").forEach((el) => {
+    const g = p.lineup[Number(el.dataset.slot)];
+    const img = el.querySelector("img.sprite");
+    if (g && img) flipFrom.set(g, img.getBoundingClientRect());
+  });
+}
+function playFlip() {
+  if (!flipFrom) return;
+  const from = flipFrom;
+  flipFrom = null;
+  stage.querySelectorAll("[data-slot]").forEach((el) => {
+    const g = p.lineup[Number(el.dataset.slot)];
+    const img = el.querySelector("img.sprite");
+    const old = g && img && from.get(g);
+    if (!old) return;
+    const now = img.getBoundingClientRect();
+    const dx = old.left - now.left, dy = old.top - now.top;
+    if (!dx && !dy) return;
+    img.style.transition = "none";
+    img.style.transform = `translate(${dx}px, ${dy}px)`;
+    void img.offsetWidth;
+    img.style.transition = "transform .3s cubic-bezier(.3,1.3,.5,1)";
+    img.style.transform = "";
+  });
+}
+
+function act(result) {
+  if (!result) return;
+  if (!result.ok) toast(result.message, true);
+  else toast(result.message, false);
+  sel = null;
+  render();
+}
+
+// ---------- Scoreboard ----------
+function renderScoreboard() {
+  $("sb-round").textContent = p.round;
+  $("sb-wins").textContent = `${p.wins}/${WINS_TO_CHAMPIONSHIP}`;
+  $("sb-losses").textContent = `${p.losses}/${LOSSES_TO_END}`;
+  $("sb-pucks").textContent = p.pucks;
+}
+
+function statBlock(punch, toughness) {
+  return `<div class="stats"><span class="badge p" title="Punch">${punch}</span><span class="badge t" title="Toughness">${toughness}</span></div>`;
+}
+// Level pucks: none at level 1, one at level 2, two at level 3.
+function levelPucks(lvl) {
+  return `<span class="lvl-pucks" aria-label="Level ${lvl}">${'<i class="lvl-puck"></i>'.repeat(lvl - 1)}</span>`;
+}
+// In the shop the small dots after the pucks show the copies still needed for the next level.
+function levelBlock(copies) {
+  const lvl = levelForCopies(copies);
+  const [from, to] = lvl === 1 ? [1, 3] : lvl === 2 ? [3, 6] : [6, 6];
+  const pips = lvl === 3 ? "" : Array.from({ length: to - from }, (_, i) => `<i class="${copies - from > i ? "on" : ""}"></i>`).join("");
+  return `<div class="level">${levelPucks(lvl)}<span class="pips">${pips}</span></div>`;
+}
+
+// ---------- Shop screen ----------
+function render() {
+  hideTip();
+  saveGame();
+  renderScoreboard();
+  renderLineup();
+  renderTray();
+}
+
+function renderLineup() {
+  queueMicrotask(playFlip);
+  const order = [...Array(LINEUP_SLOTS).keys()].reverse(); // slot 5 on the left, slot 1 (front) on the right
+  const slotTarget = sel && (sel.type === "goon" || (sel.type === "gear" && GEAR_BY_ID[p.gearOffers[sel.i]?.id]?.target === "goon") || sel.type === "slot");
+  let html = `<div class="lineup-label">${p.championship ? "Championship next" : "Your lineup · front goon fights first"}</div><div class="lineup">`;
+  for (const k of order) {
+    const g = p.lineup[k];
+    const classes = ["slot", g ? "filled" : "", sel && sel.type === "slot" && sel.i === k ? "selected" : "", slotTarget && !(sel.type === "slot" && sel.i === k) ? "target" : ""].join(" ");
+    let inner = `<span class="num">${k + 1}</span>`;
+    if (g) {
+      const s = goonStats(g);
+      const pep = p.pepTalk ? 1 : 0;
+      inner += `<img class="sprite" src="${ART[g.id]}" alt="${esc(GOON_BY_ID[g.id].name)}">`;
+      inner = `<div class="pad">${inner}</div>${statBlock(s.punch + pep, s.toughness)}${levelBlock(g.copies)}`;
+      if (g.mouthguard) inner += `<div class="gear-tags"><span class="gear-tag">GUARD</span></div>`;
+    } else {
+      inner = `<div class="pad">${inner}</div><div class="stats" style="visibility:hidden"><span class="badge">0</span></div>`;
+    }
+    const front = k === 0 ? `<span class="front-tag">FRONT</span>` : "";
+    const label = g ? `Slot ${k + 1}: ${GOON_BY_ID[g.id].name}` : `Empty slot ${k + 1}`;
+    html += `<button class="${classes}" data-slot="${k}" data-drop="slot" aria-label="${esc(label)}">${front}${inner}</button>`;
+  }
+  html += `</div>`;
+  stage.innerHTML = html;
+  addBenchCoaches(stage, "Rivals");
+  stage.querySelectorAll("[data-slot]").forEach((el) => {
+    const k = Number(el.dataset.slot);
+    el.addEventListener("click", () => onSlot(k));
+    const g = p.lineup[k];
+    if (g) {
+      draggable(el, { kind: "slot", i: k });
+      el.dataset.tipKey = `slot${k}`;
+      withTip(el, () => tipText(g.id, levelForCopies(g.copies)));
+    }
+  });
+  if (sel && sel.type === "slot" && p.lineup[sel.i]) {
+    const el = stage.querySelector(`[data-slot="${sel.i}"]`);
+    const g = p.lineup[sel.i];
+    requestAnimationFrame(() => el.isConnected && showTip(el, tipText(g.id, levelForCopies(g.copies))));
+  }
+}
+
+function infoFor() {
+  if (!sel) {
+    return { title: `Round ${p.round}`, text: p.lineup.some(Boolean)
+      ? "Drag a goon from the shop onto the ice to sign him. Drag your goons to reorder them, onto a matching goon to stack, or onto Sell."
+      : "Drag a goon from the shop onto a slot on the ice to sign him, or tap him and then tap a slot." };
+  }
+  if (sel.type === "goon") {
+    const d = GOON_BY_ID[p.goonOffers[sel.i].id];
+    return { title: d.name, text: `<b>${d.punch} punch, ${d.toughness} toughness.</b> ${esc(d.abilityText)} Drag him onto an empty slot, onto a matching goon to stack him, or onto any goon to slide him in there. Tapping him again drops him in the first open spot.` };
+  }
+  if (sel.type === "gear") {
+    const d = GEAR_BY_ID[p.gearOffers[sel.i].id];
+    return { title: d.name, text: `${esc(d.text)}. ${d.target === "goon" ? "Tap one of your goons to give it to him." : "Tap it again to use it."}` };
+  }
+  const g = p.lineup[sel.i];
+  const d = GOON_BY_ID[g.id];
+  const s = goonStats(g);
+  return { title: d.name, text: `<b>Level ${s.level}, ${g.copies} cop${g.copies > 1 ? "ies" : "y"}.</b> ${esc(d.abilityText)} Drag him to another slot and the others slide over, onto a matching goon to stack, or onto Sell.` };
+}
+
+function renderTray() {
+  const info = infoFor();
+  const goons = p.goonOffers.map((o, i) => {
+    const d = GOON_BY_ID[o.id];
+    const s = sel && sel.type === "goon" && sel.i === i;
+    return `<button class="offer ${s ? "selected" : ""} ${o.frozen ? "frozen" : ""}" data-goon="${i}" aria-label="${esc(d.name)}, ${GOON_COST} pucks">
+      <span class="tier">T${d.tier}${d.goalie ? " · G" : ""}</span>
+      <img src="${ART[o.id]}" alt=""><span class="name">${esc(d.name)}</span>${statBlock(d.punch, d.toughness)}${priceTag(GOON_COST)}</button>`;
+  }).join("");
+  const gear = p.gearOffers.map((o, i) => {
+    const d = GEAR_BY_ID[o.id];
+    const s = sel && sel.type === "gear" && sel.i === i;
+    return `<button class="offer ${s ? "selected" : ""} ${o.frozen ? "frozen" : ""}" data-gear="${i}" aria-label="${esc(d.name)}, ${GEAR_COST} pucks">
+      <span class="gear-art">${GEAR_ICONS[o.id]}</span><span class="name">${esc(d.name)}</span>${priceTag(GEAR_COST)}</button>`;
+  }).join("");
+  const coach = p.coachOffered
+    ? `<div class="shop-group"><button class="offer" data-coach="1" aria-label="Coach, ${COACH_COST} pucks"><img src="${ART.coach}" alt="" style="object-position:center top"><span class="name">Coach</span>${priceTag(COACH_COST)}</button></div>`
+    : "";
+  const canFreeze = sel && (sel.type === "goon" || sel.type === "gear");
+  const frozenNow = canFreeze && (sel.type === "goon" ? p.goonOffers[sel.i] : p.gearOffers[sel.i]).frozen;
+  tray.innerHTML = `
+    <div class="info"><span class="title">${esc(info.title)}</span><span class="text">${info.text}</span></div>
+    <div class="bottom">
+      <div class="shop-row" role="group" aria-label="Shop">
+        <div class="shop-group">${goons}</div>
+        ${gear ? `<div class="shop-group">${gear}</div>` : ""}
+        ${coach}
+      </div>
+      <div class="actions">
+        <button class="btn" id="roll">Roll ${priceTag(ROLL_COST)}</button>
+        <button class="btn" id="freeze" ${canFreeze ? "" : "disabled"}>${frozenNow ? "Unfreeze" : "Freeze"}</button>
+        <button class="btn" id="sell" data-drop="sell" ${sel && sel.type === "slot" ? "" : "disabled"}>Sell</button>
+        <button class="btn fight" id="fight">${p.championship ? "Championship" : "Fight"}</button>
+      </div>
+    </div>`;
+  tray.querySelectorAll("[data-goon]").forEach((el) => {
+    const i = Number(el.dataset.goon);
+    el.addEventListener("click", () => onGoonOffer(i));
+    draggable(el, { kind: "goon", i });
+    const id = p.goonOffers[i].id;
+    withTip(el, () => tipText(id, 1));
+  });
+  tray.querySelectorAll("[data-gear]").forEach((el) => {
+    const i = Number(el.dataset.gear);
+    el.addEventListener("click", () => onGearOffer(i));
+    draggable(el, { kind: "gear", i });
+  });
+  const coachEl = tray.querySelector("[data-coach]");
+  if (coachEl) {
+    coachEl.addEventListener("click", () => act(buyCoach(p)));
+    draggable(coachEl, { kind: "coach" });
+  }
+  $("roll").onclick = () => act(roll(p));
+  $("freeze").onclick = () => sel && act(freeze(p, sel.type === "gear" ? `g${sel.i + 1}` : String(sel.i + 1)));
+  $("sell").onclick = () => sel && sel.type === "slot" && act(sell(p, sel.i + 1));
+  $("fight").onclick = startFight;
+}
+
+function onGoonOffer(i) {
+  if (busy) return;
+  prepFlip();
+  if (sel && sel.type === "goon" && sel.i === i) return act(buyGoon(p, i + 1));
+  sel = { type: "goon", i };
+  render();
+}
+function onGearOffer(i) {
+  if (busy) return;
+  const gear = GEAR_BY_ID[p.gearOffers[i].id];
+  if (sel && sel.type === "gear" && sel.i === i && gear.target === "team") return act(buyGear(p, i + 1));
+  sel = { type: "gear", i };
+  render();
+}
+function onSlot(k) {
+  if (busy) return;
+  prepFlip();
+  if (sel && sel.type === "goon") return act(buyGoon(p, sel.i + 1, k + 1));
+  if (sel && sel.type === "gear") {
+    if (GEAR_BY_ID[p.gearOffers[sel.i].id].target === "team") return act(buyGear(p, sel.i + 1));
+    return act(buyGear(p, sel.i + 1, k + 1));
+  }
+  if (sel && sel.type === "slot") {
+    if (sel.i === k) { sel = null; return render(); }
+    return act(move(p, sel.i + 1, k + 1));
+  }
+  if (p.lineup[k]) { sel = { type: "slot", i: k }; render(); }
+}
+
+// ---------- Ability tip ----------
+// Hover a goon (mouse) or tap one in a fight to see his ability in a box above him.
+function tipText(id, level) {
+  const d = GOON_BY_ID[id];
+  const lvl = level > 1 ? `Level ${level}: ability numbers ×${level}` : `Tier ${d.tier}${d.goalie ? " · goalie" : ""}`;
+  return `<span class="tn">${esc(d.name)}</span><span class="tl">${lvl}</span><span class="tt">${esc(d.abilityText)}</span>`;
+}
+function showTip(anchor, html) {
+  const tip = $("tip");
+  const app = $("app").getBoundingClientRect();
+  const r = anchor.getBoundingClientRect();
+  tip.innerHTML = html;
+  tip.hidden = false;
+  const w = tip.offsetWidth;
+  const cx = r.left + r.width / 2 - app.left;
+  const left = Math.max(8 + w / 2, Math.min(app.width - 8 - w / 2, cx));
+  tip.style.left = `${left}px`;
+  tip.style.top = `${Math.max(tip.offsetHeight + 16, r.top - app.top + r.height * 0.08)}px`;
+  tip.style.setProperty("--arrow", `${Math.max(14, Math.min(w - 14, w / 2 + (cx - left)))}px`);
+  tip.dataset.for = anchor.dataset.tipKey || "";
+}
+function hideTip() { $("tip").hidden = true; $("tip").dataset.for = ""; }
+// anchor: the element to point at; getHtml: builds the box contents when shown.
+function withTip(el, getHtml, { tapToggles = false } = {}) {
+  el.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse" && !drag) showTip(el, getHtml()); });
+  el.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideTip(); });
+  if (tapToggles) el.addEventListener("click", () => {
+    const key = el.dataset.tipKey;
+    if (!$("tip").hidden && $("tip").dataset.for === key) hideTip(); else showTip(el, getHtml());
+  });
+}
+
+// ---------- Drag and drop ----------
+// Works with mouse and touch. A short tap still counts as a click; moving 8px starts a drag.
+// In the shop row, sideways swipes scroll the row and upward drags pick the item up.
+let drag = null;
+let suppressClick = false;
+document.addEventListener("click", (e) => {
+  if (suppressClick) { e.stopPropagation(); e.preventDefault(); suppressClick = false; }
+}, true);
+// Stop the browser's own image dragging, which would steal the gesture.
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
+function draggable(el, payload) {
+  el.addEventListener("pointerdown", (e) => {
+    if (busy || (e.button !== undefined && e.button > 0)) return;
+    const start = { x: e.clientX, y: e.clientY };
+    const pid = e.pointerId;
+    const onMove = (m) => {
+      if (m.pointerId !== pid) return;
+      if (!drag) {
+        if (Math.hypot(m.clientX - start.x, m.clientY - start.y) < 8) return;
+        beginDrag(el, payload);
+      }
+      m.preventDefault();
+      moveDrag(m.clientX, m.clientY);
+    };
+    const onUp = (u) => {
+      if (u.pointerId !== pid) return;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (drag) endDrag(u.clientX, u.clientY, u.type === "pointercancel");
+    };
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  });
+}
+
+function dragImage(payload) {
+  if (payload.kind === "goon") return `<img src="${ART[p.goonOffers[payload.i].id]}" alt="">`;
+  if (payload.kind === "slot") return `<img src="${ART[p.lineup[payload.i].id]}" alt="">`;
+  if (payload.kind === "gear") return GEAR_ICONS[p.gearOffers[payload.i].id];
+  return `<img src="${ART.coach}" alt="" style="width:60%;margin:auto">`;
+}
+
+// What happens if this payload is dropped on that target: "move", "merge", "sell", or null when it isn't allowed.
+function dropKind(payload, target) {
+  const t = target.dataset.drop;
+  if (payload.kind === "coach") return t === "coach" ? "move" : null;
+  if (t === "sell") return payload.kind === "slot" ? "sell" : null;
+  if (t !== "slot") return null;
+  const k = Number(target.dataset.slot);
+  const there = p.lineup[k];
+  if (payload.kind === "goon") {
+    const id = p.goonOffers[payload.i].id;
+    if (!there) return "move";
+    if (there.id === id) return "merge";
+    return p.lineup.some((g) => !g) ? "insert" : null;
+  }
+  if (payload.kind === "gear") {
+    const gear = GEAR_BY_ID[p.gearOffers[payload.i].id];
+    return gear.target === "team" || there ? "move" : null;
+  }
+  if (payload.kind === "slot") {
+    if (k === payload.i) return null;
+    if (!there) return "move";
+    return there.id === p.lineup[payload.i].id ? "merge" : "insert";
+  }
+  return null;
+}
+
+function beginDrag(el, payload) {
+  sel = null;
+  hideTip();
+  const ghost = document.createElement("div");
+  ghost.className = "drag-ghost";
+  ghost.innerHTML = dragImage(payload);
+  document.body.appendChild(ghost);
+  document.body.classList.add("is-dragging");
+  el.classList.add("dragging-src");
+  if (payload.kind === "slot") $("sell").disabled = false;
+  const targets = [...document.querySelectorAll("[data-drop]")].map((t) => ({ el: t, kind: dropKind(payload, t) })).filter((t) => t.kind);
+  for (const t of targets) t.el.classList.add("drop-ok", ...(t.kind === "merge" ? ["drop-merge"] : t.kind === "insert" ? ["drop-insert"] : []));
+  drag = { el, payload, ghost, targets, hover: null };
+}
+
+function targetAt(d, x, y) {
+  const hit = document.elementFromPoint(x, y)?.closest("[data-drop]");
+  return d.targets.find((t) => t.el === hit) ?? null;
+}
+
+function moveDrag(x, y) {
+  drag.ghost.style.left = `${x}px`;
+  drag.ghost.style.top = `${y}px`;
+  const t = targetAt(drag, x, y);
+  if (t !== drag.hover) {
+    drag.hover?.el.classList.remove("drop-hover");
+    t?.el.classList.add("drop-hover");
+    drag.hover = t;
+  }
+}
+
+function endDrag(x, y, cancelled) {
+  prepFlip();
+  const d = drag;
+  drag = null;
+  d.ghost.remove();
+  document.body.classList.remove("is-dragging");
+  suppressClick = true;
+  setTimeout(() => (suppressClick = false), 350);
+  const t = cancelled ? null : targetAt(d, x, y) ?? d.hover;
+  if (!t) { render(); return; }
+  const { payload } = d;
+  if (payload.kind === "coach") return act(buyCoach(p));
+  if (t.kind === "sell") return act(sell(p, payload.i + 1));
+  const k = Number(t.el.dataset.slot);
+  if (payload.kind === "goon") return act(buyGoon(p, payload.i + 1, k + 1));
+  if (payload.kind === "gear") {
+    const gear = GEAR_BY_ID[p.gearOffers[payload.i].id];
+    return act(gear.target === "team" ? buyGear(p, payload.i + 1) : buyGear(p, payload.i + 1, k + 1));
+  }
+  if (payload.kind === "slot") return act(move(p, payload.i + 1, k + 1));
+}
+
+// ---------- Fight ----------
+const sleep = (ms) => new Promise((r) => setTimeout(r, skipping ? 0 : ms / speed));
+
+function startFight() {
+  if (busy) return;
+  if (!p.lineup.some(Boolean)) return toast("Sign at least one goon before the fight.", true);
+  busy = true;
+  sel = null;
+  const r = playRound(run, true);
+  saveGame(); // the result is locked in before the animation plays
+  playFight(r);
+}
+
+async function playFight(r) {
+  skipping = false;
+  const events = r.result.events;
+  const first = events[0].snap;
+  const pos = new Map(); // uid -> element
+  // Levels for the ability tips: your lineup and the opponent's, in fight order (uids count up from your front goon).
+  const levels = new Map();
+  const mine = p.lineup.filter(Boolean), theirs = r.opponent.lineup.filter(Boolean);
+  [...mine, ...theirs].forEach((g, uid) => levels.set(uid, levelForCopies(g.copies)));
+  hideTip();
+  stage.innerHTML = `<div class="fight-layer" id="fl">
+      <div class="team-name left">You</div>
+      <div class="team-name right">${esc(r.opponent.name)}</div>
+      <div class="ticker" id="ticker">${r.wasChampionship ? "The championship! " : ""}Gloves are off…</div>
+    </div>`;
+  tray.innerHTML = `<div class="info"><span class="title">${r.wasChampionship ? "Championship" : `Round ${p.round - (p.over ? 0 : 1)}`}</span><span class="text">Your goons on the left, ${esc(r.opponent.name)} on the right. The front goons trade punches until one team is out.</span></div>
+    <div class="fight-controls"><button class="btn" id="speed">Speed ×1</button><button class="btn" id="skip">Skip to result</button></div>`;
+  $("speed").onclick = () => { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; $("speed").textContent = `Speed ×${speed}`; };
+  $("skip").onclick = () => { skipping = true; };
+  $("speed").textContent = `Speed ×${speed}`;
+  const layer = $("fl");
+  // One element per goon. Goons that join mid-fight (a twin tagging in) get theirs when they first appear.
+  const addFighter = (f, entering) => {
+    const el = document.createElement("div");
+    el.className = `fighter ${f.team === 1 ? "enemy" : ""}${entering ? " entering" : ""}`;
+    const atk = hasAttack(f.id) ? `<img class="atk" src="${ART[`${f.id}-attack`]}" alt="" style="--fit:${ATTACK_FIT[f.id] ?? 1}${ATTACK_FIT_FRONT[f.id] ? `;--fit-front:${ATTACK_FIT_FRONT[f.id]}` : ""}">` : "";
+    el.innerHTML = `<div class="body"><img class="idle" src="${ART[f.id]}" alt="${esc(GOON_BY_ID[f.id].name)}">${atk}</div>${statBlock(f.punch, f.toughness)}<div class="level">${levelPucks(f.level ?? 1)}</div>`;
+    el.dataset.tipKey = `f${f.uid}`;
+    withTip(el, () => tipText(f.id, f.level ?? levels.get(f.uid) ?? 1), { tapToggles: true });
+    layer.appendChild(el);
+    pos.set(f.uid, el);
+    return el;
+  };
+  for (const f of first) addFighter(f, false);
+  const coaches = addBenchCoaches(layer, r.opponent.name);
+  let current = first;
+  let exchangeSnap = null;
+  layout(current, pos);
+  await sleep(700);
+
+  for (const ev of events) {
+    const prev = current;
+    current = ev.snap;
+    for (const f of current) {
+      if (pos.has(f.uid)) continue;
+      // Start him where the goon he replaces stood, then let the layout slide everyone into place.
+      const el = addFighter(f, true);
+      const spot = current[current.indexOf(f) - 1];
+      const from = spot && pos.get(spot.uid);
+      if (from) { el.style.left = from.style.left; el.style.width = from.style.width; }
+    }
+    const ticker = $("ticker");
+    if (ev.text && ev.kind !== "info" && ev.kind !== "lineup") ticker.textContent = ev.text.replace(/\s+/g, " ");
+    switch (ev.kind) {
+      case "exchange": {
+        exchangeSnap = { a: ev.actors[0], b: ev.actors[1], snap: ev.snap };
+        const [a, b] = ev.actors.map((u) => pos.get(u));
+        a?.classList.add("lunge", "attacking"); b?.classList.add("lunge", "attacking");
+        // Hold the attack pose through the hit, then drop back to the stance.
+        const hold = skipping ? 0 : 750 / speed;
+        setTimeout(() => { a?.classList.remove("attacking"); b?.classList.remove("attacking"); }, hold);
+        if (!skipping) {
+          const w = document.createElement("div");
+          w.className = "wham";
+          w.innerHTML = WHAM;
+          const rect = layer.getBoundingClientRect();
+          w.style.left = `${rect.width / 2}px`;
+          w.style.top = `${rect.height * 0.55}px`;
+          layer.appendChild(w);
+          setTimeout(() => w.remove(), 700);
+        }
+        await sleep(320);
+        a?.classList.remove("lunge"); b?.classList.remove("lunge");
+        break;
+      }
+      case "impact": {
+        diff(prev, current, pos, layer);
+        // The coach whose goon got the better of the exchange cheers; the other one blows up.
+        if (exchangeSnap) {
+          const lost = (uid) => {
+            const before = exchangeSnap.snap.find((x) => x.uid === uid), after = current.find((x) => x.uid === uid);
+            return before && after ? before.toughness - after.toughness : 0;
+          };
+          const lostA = lost(exchangeSnap.a), lostB = lost(exchangeSnap.b);
+          if (lostA !== lostB) {
+            const goodSide = lostA < lostB ? 0 : 1;
+            react(coaches[goodSide], "cheer");
+            react(coaches[1 - goodSide], "angry");
+          }
+          exchangeSnap = null;
+        }
+        await sleep(520);
+        break;
+      }
+      case "ability": {
+        const shooter = current.find((x) => x.uid === ev.actors[0]);
+        const shooterEl = pos.get(ev.actors[0]);
+        const throwKind = shooter && ev.actors.length > 1 ? GOON_BY_ID[shooter.id].ability.kind : "";
+        if (throwKind === "snipeWeakest" || throwKind === "onHurtThrowRandom" || throwKind === "lassoTopPuncher") {
+          // Ranged shot: he winds up and a puck flies to his target.
+          shooterEl?.classList.add("attacking");
+          setTimeout(() => shooterEl?.classList.remove("attacking"), skipping ? 0 : 800 / speed);
+          if (!skipping) await shootPuck(shooterEl, pos.get(ev.actors[1]), layer, throwKind === "onHurtThrowRandom" ? "glove" : throwKind === "lassoTopPuncher" ? "lasso" : "puck");
+          diff(prev, current, pos, layer);
+          await sleep(350);
+          break;
+        }
+        ev.actors.slice(0, 1).forEach((u) => flash(pos.get(u), "pulse"));
+        diff(prev, current, pos, layer);
+        await sleep(650);
+        break;
+      }
+      case "buff": {
+        const src = current.find((x) => x.uid === ev.actors[0]);
+        const buffKind = src && ev.actors.length > 1 ? GOON_BY_ID[src.id].ability.kind : "";
+        if (buffKind === "sparkAhead" || buffKind === "healFront") {
+          // Spark plug sends a lightning bolt to the teammate ahead; Doc sends a first-aid cross to the front goon.
+          const el = pos.get(ev.actors[0]);
+          el?.classList.add("attacking");
+          setTimeout(() => el?.classList.remove("attacking"), skipping ? 0 : 600 / speed);
+          if (!skipping && ev.actors[1] !== ev.actors[0]) await shootPuck(el, pos.get(ev.actors[1]), layer, buffKind === "healFront" ? "heal" : "bolt");
+          flash(pos.get(ev.actors[1]), "glow");
+          diff(prev, current, pos, layer);
+          await sleep(380);
+          break;
+        }
+        ev.actors.forEach((u) => flash(pos.get(u), "glow"));
+        diff(prev, current, pos, layer);
+        await sleep(600);
+        break;
+      }
+      case "save": case "revive":
+        ev.actors.forEach((u) => flash(pos.get(u), "glow"));
+        diff(prev, current, pos, layer);
+        await sleep(600);
+        break;
+      case "summon": {
+        // The twin hops over the boards into his brother's spot.
+        const el = pos.get(ev.actors[0]);
+        if (el) { void el.offsetWidth; el.classList.remove("entering"); flash(el, "glow"); }
+        layout(current, pos);
+        await sleep(650);
+        break;
+      }
+      case "ko": {
+        const el = pos.get(ev.actors[0]);
+        const f = current.find((x) => x.uid === ev.actors[0]);
+        if (el) el.classList.add("ko", f.team === 0 ? "mine" : "theirs");
+        await sleep(520);
+        layout(current, pos);
+        await sleep(260);
+        break;
+      }
+      case "phase": case "result": case "coach":
+        diff(prev, current, pos, layer);
+        await sleep(700);
+        break;
+      default:
+        diff(prev, current, pos, layer);
+    }
+  }
+  // Both teams out: the coaches come off the benches and settle it.
+  if (current.every((f) => f.removed) || r.result.decidedBy !== "fight") await coachBrawl(r, coaches, layer);
+  skipping = false;
+  showResult(r);
+}
+
+// Bench coaches stand behind the boards in front of the glass, cut off at the waist by the boards.
+// Spots are in rink-image pixels, mapped through the stage's "cover, center bottom" background.
+const RINK = { w: 1376, h: 768, boardTop: 392, coachX: [609, 756], coachH: 112, waist: 0.65 };
+const COACH_POSE = { stand: "coach", walk: "coach-walk", angry: "coach-angry", cheer: "coach-cheer", fight: "coach-fight", jump: "coach-jump", ko: "coach-ko" };
+// Width/height of each pose image, and its height relative to the standing coach.
+const COACH_SHAPE = { stand: [0.574, 1], walk: [0.527, 1], angry: [0.823, 1.03], cheer: [0.742, 1.05], fight: [0.912, 1], jump: [0.899, 0.85], ko: [1.126, 0.58] };
+let benchCoaches = [];
+const sideOf = (c) => (c.classList.contains("right") ? 1 : 0);
+function setPose(c, pose) {
+  if (!c) return;
+  c.dataset.pose = pose;
+  const img = c.querySelector("img");
+  img.src = ART[COACH_POSE[pose]];
+  img.style.setProperty("--ar", COACH_SHAPE[pose][0]);
+  img.style.setProperty("--k", COACH_SHAPE[pose][1]);
+}
+// Each coach faces the ice unless he is pacing the other way.
+function face(c, dir) { c.classList.toggle("face-left", dir < 0); }
+function faceIce(c) { face(c, sideOf(c) ? -1 : 1); }
+function placeCoach(c) {
+  const host = c.parentElement;
+  if (!host) return;
+  const W = host.clientWidth, H = host.clientHeight;
+  const side = sideOf(c);
+  if (c.classList.contains("on-ice")) {
+    const w = Math.min(150, Math.max(80, W * 0.12)), h = w * 296 / 170;
+    Object.assign(c.style, { width: `${w}px`, height: `${h}px`, top: `${H * 0.88 - h}px`, left: `${side ? W * 0.52 : W * 0.48 - w}px` });
+    c.querySelector(".fig").style.height = `${h}px`;
+    c.querySelector(".fig").style.setProperty("--h", `${h}px`);
+  } else {
+    const sc = Math.max(W / RINK.w, H / RINK.h), ox = (W - RINK.w * sc) / 2, oy = H - RINK.h * sc;
+    const h = RINK.coachH * sc, w = h * 170 / 296;
+    const step = (Number(c.dataset.step) || 0) * w * 0.7; // pacing offset
+    Object.assign(c.style, { width: `${w}px`, height: `${h * RINK.waist}px`, top: `${oy + RINK.boardTop * sc - h * RINK.waist}px`, left: `${ox + RINK.coachX[side] * sc - w / 2 + step}px` });
+    c.querySelector(".fig").style.height = `${h}px`;
+    c.querySelector(".fig").style.setProperty("--h", `${h}px`);
+  }
+}
+function addBenchCoaches(host, rivalName) {
+  benchCoaches = [0, 1].map((side) => {
+    const c = document.createElement("div");
+    c.className = `bench-coach ${side ? "right" : "left"}`;
+    c.dataset.step = "0";
+    c.innerHTML = `<div class="fig"><img src="${ART.coach}" alt="${side ? esc(rivalName) : "Your"} coach"></div>`;
+    setPose(c, "stand");
+    faceIce(c);
+    host.prepend(c);
+    placeCoach(c);
+    schedulePace(c);
+    return c;
+  });
+  return benchCoaches;
+}
+new ResizeObserver(() => benchCoaches.forEach(placeCoach)).observe(stage);
+
+// Pacing: now and then a coach takes a couple of steps along the bench and back.
+function schedulePace(c) {
+  setTimeout(() => {
+    if (!c.isConnected) return;
+    if (c.dataset.pose === "stand" && !c.classList.contains("on-ice") && !c.dataset.busy) {
+      const at = Number(c.dataset.step);
+      const dir = at === 0 ? (Math.random() < 0.5 ? -1 : 1) : -at;
+      c.classList.add("walking");
+      setPose(c, "walk");
+      face(c, dir);
+      c.dataset.step = String(at + dir);
+      placeCoach(c);
+      setTimeout(() => {
+        if (!c.isConnected || c.dataset.pose !== "walk" || c.classList.contains("on-ice")) return;
+        c.classList.remove("walking");
+        setPose(c, "stand");
+        faceIce(c);
+      }, 1100);
+    }
+    schedulePace(c);
+  }, 2500 + Math.random() * 4000);
+}
+
+// A quick reaction (cheer or angry) that settles back to standing.
+function react(c, pose, ms = 950) {
+  if (!c || c.classList.contains("on-ice")) return;
+  c.classList.remove("walking");
+  c.dataset.busy = "1";
+  setPose(c, pose);
+  faceIce(c);
+  c.classList.remove("react"); void c.offsetWidth; c.classList.add("react");
+  clearTimeout(c._reactTimer);
+  c._reactTimer = setTimeout(() => {
+    delete c.dataset.busy;
+    if (!c.isConnected || c.classList.contains("on-ice")) return;
+    c.classList.remove("react");
+    setPose(c, "stand");
+  }, skipping ? 0 : ms / speed);
+}
+
+async function coachBrawl(r, coaches, layer) {
+  const winner = r.result.winner;
+  $("ticker").textContent = "Both teams are out! The coaches come off the benches…";
+  coaches.forEach((c) => { clearTimeout(c._reactTimer); c.classList.remove("walking", "react"); c.dataset.busy = "1"; c.dataset.step = "0"; setPose(c, "jump"); faceIce(c); c.classList.add("on-ice"); placeCoach(c); });
+  await sleep(750);
+  coaches.forEach((c) => setPose(c, "stand"));
+  await sleep(250);
+  for (let i = 0; i < 3; i++) {
+    coaches.forEach((c) => { setPose(c, "fight"); c.classList.add("lunge"); });
+    if (!skipping) {
+      const w = document.createElement("div");
+      w.className = "wham";
+      w.innerHTML = WHAM;
+      const rect = layer.getBoundingClientRect();
+      w.style.left = `${rect.width / 2}px`;
+      w.style.top = `${rect.height * 0.6}px`;
+      layer.appendChild(w);
+      setTimeout(() => w.remove(), 700);
+    }
+    await sleep(320);
+    coaches.forEach((c) => { c.classList.remove("lunge"); setPose(c, "stand"); });
+    await sleep(360);
+  }
+  if (winner === null) {
+    coaches.forEach((c) => { setPose(c, "ko"); c.classList.add("ko"); });
+    $("ticker").textContent = "The coaches knock each other out. It's a tie.";
+    await sleep(900);
+    return;
+  }
+  const loser = coaches[1 - winner], champ = coaches[winner];
+  setPose(loser, "ko");
+  loser.classList.add("ko");
+  setPose(champ, "cheer");
+  $("ticker").textContent = `${winner === 0 ? "Your" : `${r.opponent.name}'`} coach wins the brawl.`;
+  await sleep(900);
+  // He skates back to his bench, fixing his tie.
+  setPose(champ, "walk");
+  face(champ, sideOf(champ) ? 1 : -1);
+  champ.classList.remove("on-ice");
+  placeCoach(champ);
+  await sleep(650);
+  setPose(champ, "stand");
+  faceIce(champ);
+  delete champ.dataset.busy;
+}
+
+function shootPuck(fromEl, toEl, layer, kind = "puck") {
+  if (!fromEl || !toEl) return Promise.resolve();
+  const enemy = fromEl.classList.contains("enemy");
+  let puck;
+  if (kind === "bolt" || kind === "heal") {
+    puck = document.createElement("div");
+    puck.className = `${kind}-shot`;
+    puck.innerHTML = kind === "heal" ? HEAL_SVG : BOLT_SVG;
+  } else if (kind === "lasso") {
+    puck = document.createElement("div");
+    puck.className = "lasso-shot";
+    puck.innerHTML = ROPE_SVG;
+  } else if (kind === "glove") {
+    puck = document.createElement("img");
+    puck.src = ART["frankie-glove"];
+    puck.alt = "";
+    puck.className = `glove-shot${enemy ? " enemy-throw" : ""}`;
+  } else {
+    puck = document.createElement("div");
+    puck.className = "puck-shot";
+  }
+  const x0 = fromEl.offsetLeft + fromEl.offsetWidth * (enemy ? 0.15 : 0.85);
+  const y0 = fromEl.offsetTop + fromEl.offsetHeight * (kind === "puck" ? 0.62 : kind === "lasso" ? 0.1 : kind === "bolt" || kind === "heal" ? 0.45 : 0.35);
+  const x1 = toEl.offsetLeft + toEl.offsetWidth / 2;
+  const y1 = toEl.offsetTop + toEl.offsetHeight * 0.4;
+  puck.style.left = `${x0}px`;
+  puck.style.top = `${y0}px`;
+  layer.appendChild(puck);
+  const ms = (kind === "puck" ? 420 : kind === "bolt" ? 260 : kind === "heal" ? 380 : 480) / speed;
+  void puck.offsetWidth;
+  puck.style.transition = kind === "bolt" || kind === "heal" ? `left ${ms}ms ease-in, top ${ms}ms ease-in` : kind !== "puck" ? `left ${ms}ms linear, top ${ms}ms cubic-bezier(.3,-0.6,.7,1)` : `left ${ms}ms linear, top ${ms}ms ease-out`;
+  puck.style.left = `${x1}px`;
+  puck.style.top = `${y1}px`;
+  return new Promise((res) => setTimeout(() => { puck.remove(); if (kind !== "bolt" && kind !== "heal") flash(toEl, "hit"); res(); }, ms));
+}
+
+function flash(el, cls) {
+  if (!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 600);
+}
+
+// Damage numbers and stat changes between two moments of the fight.
+function diff(prev, next, pos, layer) {
+  for (const f of next) {
+    const before = prev.find((x) => x.uid === f.uid);
+    const el = pos.get(f.uid);
+    if (!before || !el) continue;
+    el.classList.toggle("tied", !!f.tied);
+    const [pb, tb] = el.querySelectorAll(".badge");
+    if (f.punch !== before.punch) { pb.textContent = Math.max(0, f.punch); bump(pb); if (!skipping) popup(el, layer, `${f.punch > before.punch ? "+" : ""}${f.punch - before.punch}`, f.punch > before.punch ? "buff" : "dmg"); }
+    if (f.toughness !== before.toughness) {
+      tb.textContent = Math.max(0, f.toughness); bump(tb);
+      if (f.toughness < before.toughness) { flash(el, "hit"); if (!skipping) popup(el, layer, `-${before.toughness - f.toughness}`, "dmg"); }
+      else if (!skipping) popup(el, layer, `+${f.toughness - before.toughness}`, "buff");
+    }
+  }
+}
+function bump(b) { b.classList.add("bump"); setTimeout(() => b.classList.remove("bump"), 220); }
+// Floating numbers start just above the goon's head; a second number at the same moment sits beside the first.
+function popup(el, layer, text, cls) {
+  const d = document.createElement("div");
+  d.className = `pop ${cls}`;
+  d.textContent = text;
+  const now = Date.now();
+  if (!el._popAt || now - el._popAt > 250) el._popN = 0;
+  el._popAt = now;
+  const shift = (el._popN++ % 2 === 0 ? -1 : 1) * Math.min(el._popN, 1) * el.offsetWidth * 0.32;
+  d.style.left = `${el.offsetLeft + el.offsetWidth / 2 + shift}px`;
+  d.style.top = `${el.offsetTop - el.offsetWidth * 0.12}px`;
+  layer.appendChild(d);
+  setTimeout(() => d.remove(), 950);
+}
+
+// Front goons meet at center ice; the rest queue up behind, a little smaller.
+function layout(snap, pos) {
+  const layer = $("fl");
+  const W = layer.clientWidth;
+  const cw = Math.min(190, W / 7.2);
+  const step = cw * 0.66;
+  const gap = cw * 0.12;
+  for (const side of [0, 1]) {
+    const alive = snap.filter((f) => f.team === side && !f.removed);
+    alive.forEach((f, i) => {
+      const el = pos.get(f.uid);
+      const w = i === 0 ? cw : cw * 0.82;
+      el.style.width = `${w}px`;
+      el.style.zIndex = String(10 - i);
+      el.classList.toggle("front", i === 0);
+      const x = side === 0 ? W / 2 - gap - cw - i * step + (i ? cw - w : 0) : W / 2 + gap + i * step;
+      el.style.left = `${x}px`;
+    });
+  }
+}
+
+function showResult(r) {
+  hideTip();
+  const layer = $("fl");
+  const kind = r.outcome;
+  const how = r.result.decidedBy === "coach" ? "by the coaches' brawl" : r.result.decidedBy === "damage" ? "by the coaches' brawl: more total damage wins it" : "";
+  const word = kind === "win" ? (r.wasChampionship ? "Champions!" : "Win!") : kind === "loss" ? "Loss" : "Tie";
+  const sub = kind === "tie" ? "The coaches knocked each other out: no win, no loss." : how ? `Decided ${how}.` : `${p.wins} wins · ${p.losses} losses`;
+  const banner = document.createElement("div");
+  banner.className = "banner";
+  banner.innerHTML = `<div class="big ${kind}">${word}</div><div class="sub">${esc(sub)}</div>`;
+  layer.appendChild(banner);
+  const controls = tray.querySelector(".fight-controls");
+  controls.innerHTML = `<button class="btn fight" id="continue">${p.over ? "See results" : "Back to the shop"}</button>`;
+  $("continue").onclick = () => {
+    busy = false;
+    if (p.over) return showEnd();
+    render();
+    if (p.payday) toast(`Greedy Glen's payday: +${p.payday} puck${p.payday === 1 ? "" : "s"} this round.`, false);
+  };
+  $("continue").focus();
+  renderScoreboard();
+}
+
+function showEnd() {
+  const end = document.createElement("div");
+  end.className = "end";
+  const lineup = p.lineup.filter(Boolean).map((g) => GOON_BY_ID[g.id].name).join(", ");
+  end.innerHTML = `<div class="card">
+    <h2>${p.champion ? "League champions!" : "Season over"}</h2>
+    <p>${p.champion ? `You took the title in ${p.round} rounds.` : `You finished with ${p.wins} wins and ${p.losses} losses after ${p.round} rounds.`}</p>
+    ${lineup ? `<p>Final lineup: ${esc(lineup)}</p>` : ""}
+    <div class="actions" style="justify-content:center"><button class="btn fight" id="again">New run</button><button class="btn" id="end-menu">Main menu</button></div></div>`;
+  $("app").appendChild(end);
+  $("again").onclick = () => { end.remove(); newGame(); };
+  $("end-menu").onclick = () => { end.remove(); showTitle(); };
+  $("again").focus();
+}
+
+
+// ---------- Saving (Continue) ----------
+const SAVE_KEY = "hockey-goons-save-v1";
+function saveGame() {
+  try {
+    if (!run) return;
+    if (p.over) localStorage.removeItem(SAVE_KEY);
+    else localStorage.setItem(SAVE_KEY, saveRun(run));
+  } catch { /* storage blocked: Continue just won't be offered */ }
+}
+function readSave() {
+  try { return loadRun(localStorage.getItem(SAVE_KEY)); } catch { return null; }
+}
+
+// ---------- Menus ----------
+const menu = $("menu");
+const TIER_INFO = [
+  { key: 1, label: "Tier 1", cls: "t1", short: "T1" },
+  { key: 2, label: "Tier 2", cls: "t2", short: "T2" },
+  { key: 3, label: "Tier 3", cls: "t3", short: "T3" },
+  { key: 4, label: "Tier 4", cls: "t4", short: "T4" },
+];
+const tierOf = (t) => TIER_INFO.find((x) => x.key === t);
+
+function openMenu(html) {
+  hideTip();
+  menu.innerHTML = html;
+  menu.hidden = false;
+  $("to-menu").disabled = true;
+}
+function closeMenu() {
+  menu.hidden = true;
+  menu.innerHTML = "";
+  $("to-menu").disabled = false;
+}
+
+function showTitle() {
+  const saved = readSave();
+  const left = hasAttack("hammer") ? ART["hammer-attack"] : ART.hammer;
+  const right = hasAttack("frankie") ? ART["frankie-attack"] : ART.frankie;
+  const record = saved ? `Round ${saved.player.round} · ${saved.player.wins}W ${saved.player.losses}L` : "No game saved";
+  openMenu(`<div class="title-screen">
+    <h1 class="game-logo" aria-label="Hockey Goons"><span>Hockey</span><span>Goons</span></h1>
+    <nav class="menu-buttons" aria-label="Main menu">
+      <button class="mb primary" id="m-new">New game</button>
+      <button class="mb" id="m-continue" ${saved ? "" : "disabled"}>Continue <small>${esc(record)}</small></button>
+      <button class="mb" id="m-goons">Goons</button>
+      <button class="mb" id="m-settings">Settings</button>
+    </nav>
+    <img class="title-goon left" src="${left}" alt="">
+    <img class="title-goon right" src="${right}" alt="">
+  </div>`);
+  let armed = false, armTimer;
+  $("m-new").onclick = () => {
+    if (saved && !armed) {
+      armed = true;
+      $("m-new").innerHTML = "Start over? <small>Tap again</small>";
+      armTimer = setTimeout(() => { armed = false; const b = $("m-new"); if (b) b.textContent = "New game"; }, 3000);
+      return;
+    }
+    clearTimeout(armTimer);
+    closeMenu();
+    newGame();
+  };
+  $("m-continue").onclick = () => {
+    const s = readSave();
+    if (!s) return;
+    run = s; p = run.player; sel = null; busy = false;
+    closeMenu();
+    render();
+  };
+  $("m-goons").onclick = showPacks;
+  $("m-settings").onclick = showSettings;
+  $("m-new").focus();
+}
+
+function menuHead(title, sub, backLabel, back, extra = "") {
+  return `<header class="menu-head"><button class="btn" id="m-back">← ${esc(backLabel)}</button><h2>${esc(title)}</h2>${sub ? `<span class="sub">${esc(sub)}</span>` : ""}${extra}</header>`;
+}
+
+function showPacks() {
+  const faces = ["hammer", "moose", "frankie"].map((id) => `<img src="${ART[id]}" alt="">`).join("");
+  openMenu(`<div class="menu-page">${menuHead("Goons", "Collect them by season", "Main menu")}
+    <div class="menu-scroll"><div class="packs">
+      <button class="pack" id="pack-1" aria-label="Season One pack, ${GOONS.length} goons">
+        <span class="wrap"><span class="brand">Hockey Goons</span><span class="season">Season<br>One</span><span class="faces">${faces}</span><span class="count">${GOONS.length} goons</span></span>
+      </button>
+      <button class="pack locked" disabled aria-label="Season Two, coming soon">
+        <span class="wrap"><span class="brand">Hockey Goons</span><span class="season">Season<br>Two</span><span class="lock">?</span><span class="count">Coming soon</span></span>
+      </button>
+    </div></div></div>`);
+  $("m-back").onclick = showTitle;
+  $("pack-1").onclick = () => showSeason("all");
+}
+
+function cardHtml(g, i) {
+  const t = tierOf(g.tier);
+  const atk = hasAttack(g.id);
+  const text = esc(g.abilityText).replace(/^([^:]+:)/, "<b>$1</b>");
+  return `<article class="hcard ${t.cls}" style="animation-delay:${Math.min(i, 20) * 25}ms">
+    <div class="hc-frame">
+      <div class="hc-top"><span>${t.label}${g.goalie ? `<span class="pos">Goalie</span>` : ""}</span><span>#${String(GOONS.indexOf(g) + 1).padStart(2, "0")}</span></div>
+      <div class="hc-art"><img class="idle ${atk ? "has-atk" : ""}" src="${ART[g.id]}" alt="${esc(g.name)}" loading="lazy">${atk ? `<img class="atk" src="${ART[`${g.id}-attack`]}" alt="" loading="lazy">` : ""}</div>
+      <div class="hc-name">${esc(g.name)}</div>
+      <div class="hc-body">
+        <div class="hc-stats"><span class="st"><span class="badge p">${g.punch}</span>Punch</span><span class="st"><span class="badge t">${g.toughness}</span>Toughness</span></div>
+        <p class="hc-ability">${text}</p>
+      </div>
+    </div>
+  </article>`;
+}
+
+function showSeason(filter) {
+  const list = GOONS.filter((g) => filter === "all" || (filter === "goalie" ? g.goalie : g.tier === filter));
+  const chips = [{ key: "all", label: "All" }, ...TIER_INFO, { key: "goalie", label: "Goalies" }]
+    .map((c) => `<button class="chip" data-f="${c.key}" aria-pressed="${String(c.key) === String(filter)}">${c.label}</button>`).join("");
+  openMenu(`<div class="menu-page">${menuHead("Season One", `${GOONS.length} goons`, "Packs", null, `<div class="chips" role="group" aria-label="Filter by tier">${chips}</div>`)}
+    <div class="menu-scroll"><div class="cards">${list.map(cardHtml).join("")}</div></div></div>`);
+  $("m-back").onclick = showPacks;
+  menu.querySelectorAll(".chip").forEach((b) => {
+    b.onclick = () => showSeason(b.dataset.f === "all" ? "all" : b.dataset.f === "goalie" ? "goalie" : Number(b.dataset.f));
+  });
+}
+
+function showSettings() {
+  const row = (name, note) => `<div class="set-row"><div><b>${name}</b><small>${note}</small></div><span class="soon">Coming soon</span><span class="switch" aria-hidden="true"></span></div>`;
+  openMenu(`<div class="menu-page">${menuHead("Settings", "", "Main menu")}
+    <div class="menu-scroll"><div class="settings">
+      ${row("Sound effects", "Punches, pucks and the crowd")}
+      ${row("Music", "Arena organ and walk-up tunes")}
+      ${row("Fight speed", "Default speed for fights")}
+    </div></div></div>`);
+  $("m-back").onclick = showTitle;
+}
+
+$("to-menu").onclick = () => { if (!busy) { saveGame(); showTitle(); } };
+
+function newGame() {
+  run = startRun(Math.floor(Math.random() * 1e9));
+  p = run.player;
+  sel = null;
+  busy = false;
+  render();
+}
+
+showTitle();
+</script>
