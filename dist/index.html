@@ -25,17 +25,19 @@
   --muted: #5b6475;
   --font-display: "Bungee", "Arial Black", Impact, sans-serif;
   --font-body: "Rubik", "Segoe UI", system-ui, sans-serif;
-  --card-w: clamp(56px, 13vw, 128px);
+  --card-w: clamp(56px, calc(13 * var(--vw)), 128px);
   color-scheme: light;
 }
 html, body { height: 100%; }
 body {
   margin: 0; background: #0e1420; color: var(--ink); font-family: var(--font-body);
-  overflow: hidden; -webkit-tap-highlight-color: transparent;
+  position: fixed; inset: 0; overflow: hidden; -webkit-tap-highlight-color: transparent; touch-action: none;
 }
+/* The game is laid out at a fixed design size and scaled to fit the window, like a video. */
 #app {
-  position: relative; height: 100%; display: grid; grid-template-rows: auto 1fr auto;
-  background: #0e1420;
+  position: absolute; left: 0; top: 0; width: var(--W); height: var(--H); transform-origin: 0 0;
+  transform: translate(var(--ox), var(--oy)) scale(var(--view-scale));
+  display: grid; grid-template-rows: auto 1fr auto; background: #0e1420; overflow: hidden;
 }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
@@ -45,14 +47,14 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
   position: relative; z-index: 2; background: #0e1420; border-bottom: 3px solid var(--ink); display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.logo { font-family: var(--font-display); color: var(--board); font-size: clamp(18px, 3.2vw, 30px); line-height: 1; text-shadow: 3px 3px 0 var(--ink); letter-spacing: .5px; }
+.logo { font-family: var(--font-display); color: var(--board); font-size: clamp(18px, calc(3.2 * var(--vw)), 30px); line-height: 1; text-shadow: 3px 3px 0 var(--ink); letter-spacing: .5px; }
 .board {
   display: flex; gap: 2px; background: var(--ink); border: 3px solid var(--ink); border-radius: 10px; overflow: hidden;
   box-shadow: 4px 4px 0 rgba(0,0,0,.35);
 }
 .cell { background: var(--scoreboard); padding: 4px 12px 6px; display: flex; flex-direction: column; align-items: center; min-width: 52px; }
 .cell .k { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #9aa3b5; text-transform: uppercase; }
-.cell .v { font-family: var(--font-display); color: var(--led); font-size: clamp(16px, 2.6vw, 24px); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cell .v { font-family: var(--font-display); color: var(--led); font-size: clamp(16px, calc(2.6 * var(--vw)), 24px); line-height: 1.1; font-variant-numeric: tabular-nums; }
 .cell .v.red { color: #ff6b5e; }
 .champ-flag { font-family: var(--font-display); color: var(--ink); background: var(--led); padding: 2px 8px; border-radius: 6px; font-size: 12px; border: 2px solid var(--ink); }
 
@@ -63,12 +65,12 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
   background: linear-gradient(to bottom, rgba(10,14,24,.5), rgba(10,14,24,0) 45%);
 }
 .lineup {
-  position: absolute; left: 0; right: 0; bottom: 11%; z-index: 1; display: flex; justify-content: center; align-items: flex-end; gap: clamp(4px, 1.2vw, 14px);
+  position: absolute; left: 0; right: 0; bottom: 11%; z-index: 1; display: flex; justify-content: center; align-items: flex-end; gap: clamp(4px, calc(1.2 * var(--vw)), 14px);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .lineup-label {
   position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 2;
-  font-family: var(--font-display); color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: clamp(13px, 2vw, 18px); white-space: nowrap;
+  font-family: var(--font-display); color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: clamp(13px, calc(2 * var(--vw)), 18px); white-space: nowrap;
 }
 .slot {
   width: var(--card-w); display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 0; position: relative;
@@ -78,14 +80,14 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
   border: 3px dashed rgba(255,255,255,.75); background: rgba(20,22,31,.18); position: relative; transition: transform .15s, background .15s;
 }
 .slot.filled .pad { border-color: transparent; background: transparent; }
-.slot .num { position: absolute; top: 6px; left: 0; right: 0; text-align: center; font-family: var(--font-display); color: rgba(255,255,255,.9); font-size: clamp(11px, 1.6vw, 15px); text-shadow: 2px 2px 0 var(--ink); }
+.slot .num { position: absolute; top: 6px; left: 0; right: 0; text-align: center; font-family: var(--font-display); color: rgba(255,255,255,.9); font-size: clamp(11px, calc(1.6 * var(--vw)), 15px); text-shadow: 2px 2px 0 var(--ink); }
 .slot.filled .num { display: none; }
 .slot img.sprite { width: 112%; max-width: none; filter: drop-shadow(0 6px 4px rgba(0,0,0,.35)); pointer-events: none; }
 .slot.selected .pad { transform: translateY(-8px); }
 .slot.selected .pad::after { content: ""; position: absolute; inset: -4px; border: 4px solid var(--led); border-radius: 16px; }
 .slot.target .pad { border-color: var(--led); background: rgba(255,194,61,.22); }
 .front-tag { font-family: var(--font-display); font-size: 10px; color: var(--ink); background: var(--led); border: 2px solid var(--ink); border-radius: 6px; padding: 0 5px; position: absolute; top: -10px; right: -4px; z-index: 2; }
-.coach-slot { margin-left: clamp(6px, 2vw, 24px); }
+.coach-slot { margin-left: clamp(6px, calc(2 * var(--vw)), 24px); }
 .coach-slot img.sprite { width: 72%; }
 
 /* Stat badges */
@@ -122,7 +124,7 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .shop-group { display: flex; gap: 8px; align-items: stretch; }
 .shop-group + .shop-group { border-left: 3px dotted #c7ced8; padding-left: 12px; }
 .offer {
-  position: relative; width: clamp(72px, 11vw, 108px); flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  position: relative; width: clamp(72px, calc(11 * var(--vw)), 108px); flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
   background: var(--board-2); border: 3px solid var(--ink); border-radius: 12px; padding: 4px 4px 6px; box-shadow: 3px 3px 0 var(--ink);
   transition: transform .12s, box-shadow .12s;
 }
@@ -150,7 +152,7 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 /* ---------- Fight ---------- */
 .fight-layer { position: absolute; inset: 0; }
 .team-name {
-  position: absolute; top: 12px; font-family: var(--font-display); color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: clamp(14px, 2.4vw, 22px); z-index: 3;
+  position: absolute; top: 12px; font-family: var(--font-display); color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: clamp(14px, calc(2.4 * var(--vw)), 22px); z-index: 3;
 }
 .team-name.left { left: max(16px, env(safe-area-inset-left, 0px)); }
 .team-name.right { right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -198,7 +200,7 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 @keyframes pulse { 0%,100% { transform: none } 40% { transform: scale(1.15) translateY(-6%) } }
 @keyframes pulse-enemy { 0%,100% { transform: scaleX(-1) } 40% { transform: scaleX(-1) scale(1.15) translateY(-6%) } }
 .pop {
-  position: absolute; font-family: var(--font-display); font-size: clamp(20px, 3.2vw, 34px); color: #fff; z-index: 40; pointer-events: none; translate: -50% 0; white-space: nowrap;
+  position: absolute; font-family: var(--font-display); font-size: clamp(20px, calc(3.2 * var(--vw)), 34px); color: #fff; z-index: 40; pointer-events: none; translate: -50% 0; white-space: nowrap;
   text-shadow: 2px 2px 0 var(--ink), -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink); animation: rise .9s ease-out forwards;
 }
 .pop.dmg { color: #ff6b5e; }
@@ -236,7 +238,7 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 @keyframes bolt-flicker { 50% { scale: 1.15 .9; filter: drop-shadow(0 0 10px #fff3a0); } }
 .glove-shot { scale: -1 1; }
 @keyframes glove-spin { to { rotate: 360deg; } }
-.wham { position: absolute; z-index: 4; width: clamp(80px, 12vw, 140px); pointer-events: none; animation: wham .55s ease-out forwards; }
+.wham { position: absolute; z-index: 4; width: clamp(80px, calc(12 * var(--vw)), 140px); pointer-events: none; animation: wham .55s ease-out forwards; }
 @keyframes wham { from { transform: translate(-50%, -50%) scale(.3) rotate(-10deg); opacity: 0 } 30% { transform: translate(-50%, -50%) scale(1.1) rotate(4deg); opacity: 1 } to { transform: translate(-50%, -50%) scale(1); opacity: 0 } }
 .ticker {
   position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 4; max-width: min(92%, 640px); width: max-content;
@@ -246,14 +248,14 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .banner {
   position: absolute; left: 50%; top: 16%; transform: translate(-50%, -50%); z-index: 20; text-align: center; display: grid; gap: 10px; justify-items: center;
 }
-.banner .big { font-family: var(--font-display); font-size: clamp(42px, 10vw, 96px); line-height: 1; color: var(--board); text-shadow: 5px 5px 0 var(--ink); animation: slam .45s cubic-bezier(.2,1.6,.4,1); }
+.banner .big { font-family: var(--font-display); font-size: clamp(42px, calc(10 * var(--vw)), 96px); line-height: 1; color: var(--board); text-shadow: 5px 5px 0 var(--ink); animation: slam .45s cubic-bezier(.2,1.6,.4,1); }
 .banner .big.win { color: var(--led); }
 .banner .big.loss { color: #ff6b5e; }
 .banner .sub { font-weight: 800; color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: 16px; }
 @keyframes slam { from { transform: scale(2.2); opacity: 0 } to { transform: none; opacity: 1 } }
 
 /* ---------- Drag and drop ---------- */
-.drag-ghost { position: fixed; z-index: 50; pointer-events: none; width: var(--card-w); transform: translate(-50%, -60%) rotate(-4deg) scale(1.1); filter: drop-shadow(4px 8px 0 rgba(20,22,31,.45)); }
+.drag-ghost { position: fixed; z-index: 50; pointer-events: none; width: var(--card-w); transform: translate(-50%, -60%) rotate(-4deg) scale(calc(1.1 * var(--view-scale))); filter: drop-shadow(4px 8px 0 rgba(20,22,31,.45)); }
 .drag-ghost img, .drag-ghost svg { width: 100%; display: block; }
 .dragging-src { opacity: .35; }
 .slot.drop-ok .pad { border: 3px dashed var(--led); background: rgba(255,194,61,.2); }
@@ -270,7 +272,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 
 /* ---------- Ability tip ---------- */
 .tip {
-  position: absolute; z-index: 45; width: max-content; max-width: min(260px, 80vw); pointer-events: none;
+  position: absolute; z-index: 45; width: max-content; max-width: min(260px, calc(80 * var(--vw))); pointer-events: none;
   background: var(--board); border: 3px solid var(--ink); border-radius: 12px; box-shadow: 3px 3px 0 var(--ink); padding: 8px 11px 9px;
   display: grid; gap: 3px; transform: translate(-50%, calc(-100% - 12px));
 }
@@ -291,18 +293,16 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .end .card { background: var(--board); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 6px 6px 0 var(--ink); padding: 22px 26px; display: grid; gap: 12px; justify-items: center; text-align: center; max-width: 420px; }
-.end h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 6vw, 44px); line-height: 1.05; text-wrap: balance; }
+.end h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, calc(6 * var(--vw)), 44px); line-height: 1.05; text-wrap: balance; }
 .end p { margin: 0; color: var(--muted); }
 
-@media (max-width: 640px) {
-  .logo { display: none; }
-  .cell { min-width: 44px; padding: 3px 8px 5px; }
-  .info .title { font-size: 14px; }
-  .info .text { font-size: 13px; }
-  .badge { min-width: 20px; height: 20px; font-size: 11px; border-width: 2px; }
-  .btn { padding: 7px 10px; font-size: 13px; }
-  .btn.fight { font-size: 16px; padding: 8px 16px; }
-}
+.portrait .logo { display: none; }
+.portrait .cell { min-width: 44px; padding: 3px 8px 5px; }
+.portrait .info .title { font-size: 14px; }
+.portrait .info .text { font-size: 13px; }
+.portrait .badge { min-width: 20px; height: 20px; font-size: 11px; border-width: 2px; }
+.portrait .btn { padding: 7px 10px; font-size: 13px; }
+.portrait .btn.fight { font-size: 16px; padding: 8px 16px; }
 
 /* ---------- Menus: title, goon packs, settings ---------- */
 .home-btn { border: 3px solid var(--ink); border-radius: 9px; background: var(--board); font-weight: 800; font-size: 13px; padding: 5px 10px; box-shadow: 2px 2px 0 rgba(0,0,0,.45); }
@@ -315,13 +315,13 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 
 .title-screen { height: 100%; display: grid; grid-template-rows: 1fr auto 1fr; justify-items: center; padding: 16px; box-sizing: border-box; }
 .game-logo { grid-row: 2; margin: 0; display: grid; justify-items: center; font-family: var(--font-display); font-weight: 400; line-height: .9; transform: rotate(-4deg); animation: logo-in .6s cubic-bezier(.2,1.5,.4,1) both; }
-.game-logo span { display: block; color: var(--led); font-size: clamp(54px, 13vw, 132px); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill;
+.game-logo span { display: block; color: var(--led); font-size: clamp(54px, calc(13 * var(--vw)), 132px); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill;
   text-shadow: 0 0 0 var(--ink), 4px 4px 0 var(--ink), 7px 7px 0 var(--ink), -3px -3px 0 var(--board), 3px -3px 0 var(--board), -3px 3px 0 var(--board); }
-.game-logo span + span { color: var(--goal-red); margin-top: -.08em; font-size: clamp(64px, 16vw, 160px); }
+.game-logo span + span { color: var(--goal-red); margin-top: -.08em; font-size: clamp(64px, calc(16 * var(--vw)), 160px); }
 @keyframes logo-in { from { transform: rotate(-12deg) scale(.4); opacity: 0 } to { transform: rotate(-4deg) scale(1); opacity: 1 } }
-.tagline { grid-row: 3; align-self: start; margin: 10px 0 0; font-weight: 800; font-size: clamp(14px, 2.2vw, 18px); text-shadow: 2px 2px 0 var(--ink); text-align: center; }
+.tagline { grid-row: 3; align-self: start; margin: 10px 0 0; font-weight: 800; font-size: clamp(14px, calc(2.2 * var(--vw)), 18px); text-shadow: 2px 2px 0 var(--ink); text-align: center; }
 .menu-buttons { grid-row: 3; align-self: start; margin-top: 48px; display: grid; gap: 12px; width: min(320px, 100%); z-index: 2; }
-.menu-buttons .mb { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 3vw, 22px); color: var(--ink); background: var(--board);
+.menu-buttons .mb { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, calc(3 * var(--vw)), 22px); color: var(--ink); background: var(--board);
   border: 4px solid var(--ink); border-radius: 14px; padding: 10px 18px; box-shadow: 5px 5px 0 var(--ink); display: flex; align-items: center; justify-content: space-between; gap: 10px;
   transition: transform .12s, box-shadow .12s, background .12s; }
 .menu-buttons .mb:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); background: #fff3cf; }
@@ -331,7 +331,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .menu-buttons .mb:disabled { opacity: .5; cursor: default; }
 .mb small { font-family: var(--font-body); font-weight: 800; font-size: 12px; color: var(--muted); }
 .mb.primary small { color: #ffe1dc; text-shadow: none; }
-.title-goon { position: absolute; bottom: 2%; width: clamp(120px, 24vw, 300px); pointer-events: none; filter: drop-shadow(0 8px 6px rgba(0,0,0,.45)); z-index: 1; }
+.title-goon { position: absolute; bottom: 2%; width: clamp(120px, calc(24 * var(--vw)), 300px); pointer-events: none; filter: drop-shadow(0 8px 6px rgba(0,0,0,.45)); z-index: 1; }
 .title-goon.left { left: 3%; animation: bob 2.4s ease-in-out infinite; }
 .title-goon.right { right: 3%; transform: scaleX(-1); animation: bob-flip 2.4s ease-in-out infinite .6s; }
 @keyframes bob { 50% { translate: 0 -6px; } }
@@ -340,7 +340,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .menu-page { height: 100%; display: grid; grid-template-rows: auto 1fr; }
 .menu-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px max(16px, env(safe-area-inset-left, 0px)); background: rgba(14,20,32,.88); border-bottom: 3px solid var(--ink); }
 .menu-head .btn { color: var(--ink); }
-.menu-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(22px, 4vw, 34px); color: var(--led); text-shadow: 3px 3px 0 var(--ink); }
+.menu-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(22px, calc(4 * var(--vw)), 34px); color: var(--led); text-shadow: 3px 3px 0 var(--ink); }
 .menu-head .sub { color: #c9d1de; font-weight: 600; font-size: 14px; }
 .menu-scroll { overflow-y: auto; padding: 24px max(16px, env(safe-area-inset-left, 0px)) 40px; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
@@ -349,7 +349,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 
 /* Packs */
 .packs { display: flex; gap: 36px; flex-wrap: wrap; justify-content: center; padding-top: 12px; }
-.pack { --foil: linear-gradient(150deg, #1c3f8a, #2a7fc2 35%, #1b2f66 60%, #7a1f2e); position: relative; width: clamp(190px, 26vw, 250px); aspect-ratio: 5 / 7; border: 0; padding: 0; background: none; color: var(--board);
+.pack { --foil: linear-gradient(150deg, #1c3f8a, #2a7fc2 35%, #1b2f66 60%, #7a1f2e); position: relative; width: clamp(190px, calc(26 * var(--vw)), 250px); aspect-ratio: 5 / 7; border: 0; padding: 0; background: none; color: var(--board);
   transition: transform .2s cubic-bezier(.3,1.4,.5,1); filter: drop-shadow(6px 8px 0 rgba(0,0,0,.45)); }
 .pack:hover:not(:disabled) { transform: translateY(-8px) rotate(-2deg); }
 .pack .wrap { position: absolute; inset: 0; background: var(--foil); border: 4px solid var(--ink); border-radius: 10px; overflow: hidden; display: grid; grid-template-rows: auto auto 1fr auto; justify-items: center; padding: 26px 12px 22px; box-sizing: border-box;
@@ -357,7 +357,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .pack .wrap::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.35) 45%, transparent 60%); background-size: 250% 100%; animation: foil 3.5s linear infinite; pointer-events: none; }
 @keyframes foil { from { background-position: 150% 0 } to { background-position: -100% 0 } }
 .pack .brand { font-family: var(--font-display); font-size: 13px; letter-spacing: 1px; color: var(--board); text-shadow: 2px 2px 0 var(--ink); }
-.pack .season { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); line-height: .95; color: var(--led); text-shadow: 3px 3px 0 var(--ink); text-align: center; margin-top: 4px; }
+.pack .season { font-family: var(--font-display); font-size: clamp(24px, calc(3.4 * var(--vw)), 32px); line-height: .95; color: var(--led); text-shadow: 3px 3px 0 var(--ink); text-align: center; margin-top: 4px; }
 .pack .faces { position: relative; width: 100%; align-self: end; height: 62%; }
 .pack .faces img { position: absolute; bottom: 0; width: 62%; filter: drop-shadow(0 4px 3px rgba(0,0,0,.4)); }
 .pack .faces img:nth-child(1) { left: -8%; transform: rotate(-8deg); }
@@ -400,18 +400,23 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .switch { width: 52px; height: 30px; border-radius: 999px; border: 3px solid var(--ink); background: #c7ced8; position: relative; flex: none; }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--board); border: 2px solid var(--ink); box-sizing: border-box; }
 .soon { font-size: 11px; font-weight: 800; background: var(--led); border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); white-space: nowrap; }
-@media (max-width: 640px) {
-  .lvl-puck { width: 13px; height: 8px; box-shadow: inset 0 -2px 0 #3a4152, 0 0 0 1.5px var(--led); }
-  .level { gap: 3px; min-height: 9px; }
-  .pips i { width: 5px; height: 5px; }
-  .game-logo span { font-size: 19vw; }
-  .game-logo span + span { font-size: 23vw; }
-  .menu-buttons { margin-top: 36px; }
-  .title-goon { width: 30vw; opacity: .9; }
-  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .hc-name { font-size: 13px; }
-  .hc-ability { font-size: 11.5px; }
-}
+.portrait .lvl-puck { width: 13px; height: 8px; box-shadow: inset 0 -2px 0 #3a4152, 0 0 0 1.5px var(--led); }
+.portrait .level { gap: 3px; min-height: 9px; }
+.portrait .pips i { width: 5px; height: 5px; }
+.portrait .game-logo span { font-size: calc(19 * var(--vw)); }
+.portrait .game-logo span + span { font-size: calc(23 * var(--vw)); }
+.portrait .menu-buttons { margin-top: 36px; }
+.portrait .title-goon { width: calc(30 * var(--vw)); opacity: .9; }
+.portrait .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.portrait .hc-name { font-size: 13px; }
+.portrait .hc-ability { font-size: 11.5px; }
+.short .scoreboard { padding-block: 5px; }
+.short .info { display: none; }
+.short .tray { padding-block: 8px 8px; gap: 6px; }
+.short .lineup-label { display: none; }
+.portrait .lineup { bottom: 9%; }
+.portrait .fighter .badge { min-width: 18px; height: 17px; font-size: 11px; border-width: 2px; padding: 0 2px; }
+.portrait .fighter .stats { flex-direction: column; align-items: center; gap: 2px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
@@ -1681,6 +1686,35 @@ const { GOON_BY_ID, GEAR_BY_ID, GOON_COST, GEAR_COST, COACH_COST, ROLL_COST, WIN
   startRun, playRound, buyGoon, buyGear, buyCoach, sell, move, roll, freeze, goonStats, levelForCopies, saveRun, loadRun, GOONS } = window.HG;
 
 const $ = (id) => document.getElementById(id);
+
+// ---------- Screen fit ----------
+// Landscape screens get a wide canvas (a shorter one for sideways phones); upright phones get a tall one.
+let viewScale = 1;
+function fitScreen() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const portrait = vh > vw * 1.05;
+  let W, H;
+  if (portrait) {
+    W = 520;
+    H = Math.round(Math.min(1100, Math.max(800, (vh / vw) * W)));
+  } else {
+    H = vh < 560 ? 500 : 760;
+    W = Math.round(Math.min(1.9 * H, Math.max(1.33 * H, (vw / vh) * H)));
+  }
+  viewScale = Math.min(vw / W, vh / H);
+  const root = document.documentElement.style;
+  root.setProperty("--W", `${W}px`);
+  root.setProperty("--H", `${H}px`);
+  root.setProperty("--vw", `${W / 100}px`);
+  root.setProperty("--view-scale", viewScale);
+  root.setProperty("--ox", `${(vw - W * viewScale) / 2}px`);
+  root.setProperty("--oy", `${(vh - H * viewScale) / 2}px`);
+  document.body.classList.toggle("portrait", portrait);
+  document.body.classList.toggle("short", !portrait && H === 500);
+}
+fitScreen();
+addEventListener("resize", fitScreen);
+addEventListener("orientationchange", () => setTimeout(fitScreen, 200));
 const stage = $("stage"), tray = $("tray");
 let run, p, sel = null, busy = false, speed = 1, skipping = false;
 
@@ -1734,7 +1768,7 @@ function playFlip() {
     const old = g && img && from.get(g);
     if (!old) return;
     const now = img.getBoundingClientRect();
-    const dx = old.left - now.left, dy = old.top - now.top;
+    const dx = (old.left - now.left) / viewScale, dy = (old.top - now.top) / viewScale;
     if (!dx && !dy) return;
     img.style.transition = "none";
     img.style.transform = `translate(${dx}px, ${dy}px)`;
@@ -1947,10 +1981,11 @@ function showTip(anchor, html) {
   tip.innerHTML = html;
   tip.hidden = false;
   const w = tip.offsetWidth;
-  const cx = r.left + r.width / 2 - app.left;
-  const left = Math.max(8 + w / 2, Math.min(app.width - 8 - w / 2, cx));
+  const k = viewScale;
+  const cx = (r.left + r.width / 2 - app.left) / k;
+  const left = Math.max(8 + w / 2, Math.min(app.width / k - 8 - w / 2, cx));
   tip.style.left = `${left}px`;
-  tip.style.top = `${Math.max(tip.offsetHeight + 16, r.top - app.top + r.height * 0.08)}px`;
+  tip.style.top = `${Math.max(tip.offsetHeight + 16, (r.top - app.top) / k + (r.height / k) * 0.08)}px`;
   tip.style.setProperty("--arrow", `${Math.max(14, Math.min(w - 14, w / 2 + (cx - left)))}px`);
   tip.dataset.for = anchor.dataset.tipKey || "";
 }
@@ -2167,7 +2202,7 @@ async function playFight(r) {
           const w = document.createElement("div");
           w.className = "wham";
           w.innerHTML = WHAM;
-          const rect = layer.getBoundingClientRect();
+          const rect = { width: layer.clientWidth, height: layer.clientHeight };
           w.style.left = `${rect.width / 2}px`;
           w.style.top = `${rect.height * 0.55}px`;
           layer.appendChild(w);
@@ -2280,6 +2315,21 @@ function setPose(c, pose) {
 // Each coach faces the ice unless he is pacing the other way.
 function face(c, dir) { c.classList.toggle("face-left", dir < 0); }
 function faceIce(c) { face(c, sideOf(c) ? -1 : 1); }
+// Where the rink picture sits in the stage: it covers the stage, and when the stage is a wide strip
+// the boards stay about 30% down (so the coaches and crowd stay in view) and the near ice gets cropped instead.
+function rinkFrame(W, H) {
+  const sc = Math.max(W / RINK.w, H / RINK.h);
+  const ox = (W - RINK.w * sc) / 2;
+  const oy = Math.min(0, Math.max(H - RINK.h * sc, H * 0.3 - RINK.boardTop * sc));
+  return { sc, ox, oy };
+}
+function frameRink() {
+  const W = stage.clientWidth, H = stage.clientHeight;
+  if (!W || !H) return;
+  const { sc, ox, oy } = rinkFrame(W, H);
+  stage.style.backgroundSize = `${RINK.w * sc}px ${RINK.h * sc}px`;
+  stage.style.backgroundPosition = `${ox}px ${oy}px`;
+}
 function placeCoach(c) {
   const host = c.parentElement;
   if (!host) return;
@@ -2291,7 +2341,7 @@ function placeCoach(c) {
     c.querySelector(".fig").style.height = `${h}px`;
     c.querySelector(".fig").style.setProperty("--h", `${h}px`);
   } else {
-    const sc = Math.max(W / RINK.w, H / RINK.h), ox = (W - RINK.w * sc) / 2, oy = H - RINK.h * sc;
+    const { sc, ox, oy } = rinkFrame(W, H);
     const h = RINK.coachH * sc, w = h * 170 / 296;
     const step = (Number(c.dataset.step) || 0) * w * 0.7; // pacing offset
     Object.assign(c.style, { width: `${w}px`, height: `${h * RINK.waist}px`, top: `${oy + RINK.boardTop * sc - h * RINK.waist}px`, left: `${ox + RINK.coachX[side] * sc - w / 2 + step}px` });
@@ -2314,7 +2364,7 @@ function addBenchCoaches(host, rivalName) {
   });
   return benchCoaches;
 }
-new ResizeObserver(() => benchCoaches.forEach(placeCoach)).observe(stage);
+new ResizeObserver(() => { frameRink(); benchCoaches.forEach(placeCoach); }).observe(stage);
 
 // Pacing: now and then a coach takes a couple of steps along the bench and back.
 function schedulePace(c) {
@@ -2369,7 +2419,7 @@ async function coachBrawl(r, coaches, layer) {
       const w = document.createElement("div");
       w.className = "wham";
       w.innerHTML = WHAM;
-      const rect = layer.getBoundingClientRect();
+      const rect = { width: layer.clientWidth, height: layer.clientHeight };
       w.style.left = `${rect.width / 2}px`;
       w.style.top = `${rect.height * 0.6}px`;
       layer.appendChild(w);
@@ -2482,8 +2532,9 @@ function popup(el, layer, text, cls) {
 function layout(snap, pos) {
   const layer = $("fl");
   const W = layer.clientWidth;
-  const cw = Math.min(190, W / 7.2);
-  const step = cw * 0.66;
+  const tall = document.body.classList.contains("portrait");
+  const cw = Math.min(190, tall ? W / 6.4 : W / 7.2);
+  const step = cw * (tall ? 0.56 : 0.66);
   const gap = cw * 0.12;
   for (const side of [0, 1]) {
     const alive = snap.filter((f) => f.team === side && !f.removed);
