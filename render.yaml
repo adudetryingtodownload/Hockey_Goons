@@ -1,0 +1,7 @@
+# Render static site: the game is one prebuilt page in dist/, so there's nothing to build.
+services:
+  - type: web
+    name: hockey-goons
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: ./dist

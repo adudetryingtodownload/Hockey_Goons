@@ -1,0 +1,17 @@
+{
+  "name": "hockey-goons",
+  "version": "0.1.0",
+  "description": "Hockey Goons fight engine: an auto battler in the style of Super Auto Pets",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "play": "node --experimental-strip-types --no-warnings src/play.ts",
+    "fight": "node --experimental-strip-types --no-warnings src/fight.ts",
+    "sim": "node --experimental-strip-types --no-warnings src/sim.ts",
+    "runs": "node --experimental-strip-types --no-warnings src/runs.ts",
+    "test": "node --experimental-strip-types --no-warnings src/test.ts"
+  }
+}
