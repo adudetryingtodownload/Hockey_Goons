@@ -531,7 +531,7 @@ const GOONS            = [
   { id: "tommy", name: "Toothless Tommy", tier: 1, punch: 2, toughness: 3,
     ability: { kind: "weakenEnemyFront", amount: 1 },
     abilityText: "Start of fight: the enemy front goon loses 1 punch." },
-  { id: "eddie", name: "Elbows Eddie", tier: 1, punch: 3, toughness: 1,
+  { id: "eddie", name: "Eddie Elbows", tier: 1, punch: 3, toughness: 1,
     ability: { kind: "damageEnemyFront", amount: 1 },
     abilityText: "Start of fight: deal 1 damage to the enemy front goon." },
   { id: "dusty", name: "Dusty the Grinder", tier: 1, punch: 2, toughness: 2,
@@ -543,13 +543,13 @@ const GOONS            = [
   { id: "randy", name: "Rookie Randy", tier: 1, punch: 1, toughness: 3,
     ability: { kind: "endOfShopGainToughness", amount: 1 },
     abilityText: "End of shop phase: gains +1 toughness permanently." },
-  { id: "kowalski", name: "Kowalski", tier: 1, punch: 2, toughness: 2,
+  { id: "kowalski", name: "Krazy Kowalski", tier: 1, punch: 2, toughness: 2,
     ability: { kind: "endOfShopBuffFrontPunch", amount: 1 },
     abilityText: "Film study: end of each shop phase, the goon in front of him gets +1 punch permanently." },
   { id: "sid", name: "Cross-Check Chris", tier: 1, punch: 2, toughness: 2,
     ability: { kind: "punchSplashBehind", amount: 1 },
     abilityText: "Cross-check: every punch also hits the enemy goon behind the front one for 1." },
-  { id: "henry", name: "Hooking Henry", tier: 1, punch: 2, toughness: 3,
+  { id: "henry", name: "Henry Hook", tier: 1, punch: 2, toughness: 3,
     ability: { kind: "hookBackToFront", amount: 1 },
     abilityText: "Hook: start of fight, hooks the enemy's back goon, drags him to the front and deals 1 damage." },
 
@@ -569,13 +569,13 @@ const GOONS            = [
   { id: "sebastien", name: "Sébastien Spark", tier: 2, punch: 2, toughness: 3,
     ability: { kind: "sparkAhead", amount: 1 },
     abilityText: "Spark plug: after every exchange, zaps the teammate directly in front of him for +1 punch and +1 toughness. It keeps building all fight." },
-  { id: "twins", name: "The Camo Twins", tier: 2, punch: 3, toughness: 3,
+  { id: "twins", name: "The Sneaky Smiths", tier: 2, punch: 3, toughness: 3,
     ability: { kind: "summonOnKnockout", summon: "twin", punch: 2, toughness: 2 },
     abilityText: "Tag in: when he's knocked out, his twin brother steps in to take his spot as a 2/2 (4/4 at level 2, 6/6 at level 3)." },
   { id: "doc", name: "Dr. Sawbones", tier: 2, punch: 2, toughness: 4,
     ability: { kind: "healFront", amount: 2 },
     abilityText: "Patch up: after every exchange, heals your front goon for 2 (never above his best toughness this fight)." },
-  { id: "willie", name: "Whipping Willie", tier: 2, punch: 3, toughness: 5,
+  { id: "willie", name: "Willie Whips", tier: 2, punch: 3, toughness: 5,
     ability: { kind: "whipBackswing", amount: 1 },
     abilityText: "Whip: his punches deal +1 damage, but his backswing hits the teammate behind him for 1. Line up a goon who likes getting hit." },
   { id: "glen", name: "Greedy Glen", tier: 2, goalie: true, punch: 2, toughness: 5,
@@ -583,16 +583,16 @@ const GOONS            = [
     abilityText: "Payday: while he's in your lineup, every shop phase starts with +1 puck (+2 at level 2, +3 at level 3)." },
 
   // Tier 3 · round 5
-  { id: "stan", name: "Stitches Stan", tier: 3, punch: 4, toughness: 5,
+  { id: "stan", name: "Stanley Stitches", tier: 3, punch: 4, toughness: 5,
     ability: { kind: "reviveOnce", toughness: 1 },
     abilityText: "Knocked out: gets back up once with 1 toughness." },
   { id: "frankie", name: "Short Fuse Frankie", tier: 3, punch: 3, toughness: 5,
     ability: { kind: "onHurtThrowRandom", amount: 2 },
     abilityText: "Short fuse: every time he takes a hit, he throws a glove at a random enemy for 2. Level 2 throws at 2 enemies, level 3 at 3." },
-  { id: "ted", name: "Texas Ted", tier: 3, punch: 3, toughness: 5,
+  { id: "ted", name: "Teddy Texas", tier: 3, punch: 3, toughness: 5,
     ability: { kind: "lassoTopPuncher", amount: 1 },
     abilityText: "Lasso: start of fight, ropes the enemy goon with the most punch. He misses his next punch. Level 2 ropes 2 goons, level 3 ropes 3." },
-  { id: "moose", name: "Big Moose", tier: 3, punch: 3, toughness: 8,
+  { id: "moose", name: "Maurice Moose", tier: 3, punch: 3, toughness: 8,
     ability: { kind: "onHurtGainPunch", amount: 1 },
     abilityText: "Takes a hit: gains +1 punch for this fight." },
   { id: "knuckles", name: "Captain Knuckles", tier: 3, punch: 4, toughness: 6,
@@ -601,7 +601,7 @@ const GOONS            = [
   { id: "ike", name: "Iron Ike", tier: 3, punch: 4, toughness: 6,
     ability: { kind: "toughnessPerTeammateBehind", amount: 1 },
     abilityText: "Anchor: start of fight, gains +1 toughness for each teammate behind him." },
-  { id: "sam", name: "Scared Sammy", tier: 3, goalie: true, punch: 3, toughness: 7,
+  { id: "sam", name: "Sammy Shakes", tier: 3, goalie: true, punch: 3, toughness: 7,
     ability: { kind: "buffFrontToughness", amount: 2 },
     abilityText: "Start of fight: your front goon gets +2 toughness." },
 
@@ -640,9 +640,9 @@ const GOONS            = [
 
 // Goons that only appear during a fight (never in the shop or the card packs).
 const TOKENS            = [
-  { id: "twin", name: "Camo Twin", tier: 2, punch: 2, toughness: 2,
+  { id: "twin", name: "Sneaky Smith", tier: 2, punch: 2, toughness: 2,
     ability: { kind: "none" },
-    abilityText: "The other Camo Twin. He tags in when his brother goes down." },
+    abilityText: "The other Sneaky Smith. He tags in when his brother goes down." },
 ];
 
 const GOON_BY_ID                          = Object.fromEntries([...GOONS, ...TOKENS].map((g) => [g.id, g]));
@@ -733,7 +733,7 @@ function makeUnit(id        , copies = 1)            {
                     
                       
                             
-                                                                   
+                                                                     
                                                                                   
                                                                                              
   
