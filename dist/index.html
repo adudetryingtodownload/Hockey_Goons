@@ -227,9 +227,15 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .fight-hud { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
 .fight-hud > * { pointer-events: auto; }
 .fighter.skating-in { transition: left 1.05s cubic-bezier(.4,0,.2,1), transform .25s, opacity .3s; }
-.fighter.skating-in .body { animation: skate-stride .26s ease-in-out infinite alternate; }
-@keyframes skate-stride { from { rotate: -4deg; translate: 0 0; } to { rotate: 4deg; translate: 0 -3px; } }
-.fighter.enemy.skating-in .body { animation-direction: alternate-reverse; }
+/* Skating in: a smooth glide with a slight lean, each goon swerving a little up or down the ice
+   (his own --swerve) and settling back onto the fight line as he hockey-stops. */
+.fighter.skating-in .body { animation: glide-in 1.05s cubic-bezier(.4,0,.2,1) both; }
+@keyframes glide-in {
+  0% { translate: 0 0; rotate: var(--lean); }
+  45% { translate: 0 var(--swerve); rotate: var(--lean); }
+  80% { translate: 0 calc(var(--swerve) * -0.25); rotate: calc(var(--lean) * -0.6); }
+  100% { translate: 0 0; rotate: 0deg; }
+}
 .team-name {
   position: absolute; top: 12px; font-family: var(--font-display); color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: clamp(14px, calc(2.4 * var(--vw)), 22px); z-index: 3;
 }
@@ -2804,11 +2810,19 @@ async function playFight(r) {
   await fightSlam(layer);
   // ...then skate in to fighting distance while the camera pushes in on the fight line.
   if (!skipping) {
-    pos.forEach((el) => el.classList.add("skating-in"));
+    pos.forEach((el) => {
+      // Each goon gets his own swerve, up or down the ice, so they don't move in lockstep.
+      el.style.setProperty("--swerve", `${(Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 18)}px`);
+      el.style.setProperty("--lean", `${(el.classList.contains("enemy") ? -1 : 1) * (3 + Math.random() * 3)}deg`);
+      el.classList.add("skating-in");
+    });
     layout(current, pos);
     camera(layer, true);
     Sfx.play("woosh", { vol: 0.5, rate: 0.7 });
+    Sfx.play("glass", { vol: 0.25, rate: 1.8, delay: 0.85 }); // ice spray as they stop
     await sleep(1050);
+    // A puff of ice spray off each goon's skates as he stops.
+    pos.forEach((el) => iceChips(el, layer, 3));
     pos.forEach((el) => el.classList.remove("skating-in"));
   } else camera(layer, true);
 
