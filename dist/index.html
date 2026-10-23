@@ -164,6 +164,32 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .fighter .gear-badge { width: clamp(18px, calc(2.6 * var(--vw)), 30px); }
 .fighter.enemy .over-head { transform: scaleX(-1); } /* the enemy's body is mirrored; keep his icons the right way round */
 @keyframes badge-in { from { transform: scale(0); } to { transform: scale(1); } }
+/* ---------- Juice ---------- */
+.fly-clone { position: fixed; z-index: 200; pointer-events: none; display: grid; place-items: center; }
+.fly-clone img, .fly-clone svg { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 6px rgba(0,0,0,.35)); }
+.fly-puck { display: block; width: 18px; height: 11px; border-radius: 50%; background: var(--ink); box-shadow: inset 0 -3px 0 #3a4152, 0 0 0 2px var(--led); }
+.slot.landed .pad { animation: land .35s cubic-bezier(.3,1.6,.5,1); }
+@keyframes land { 0% { transform: translateY(-6px) scale(1.06, .94); } 60% { transform: translateY(0) scale(.97, 1.04); } 100% { transform: none; } }
+.slot.lvl-up .pad { animation: lvl-bounce .6s cubic-bezier(.3,1.6,.5,1); }
+@keyframes lvl-bounce { 0% { transform: scale(1); } 30% { transform: translateY(-14px) scale(1.12); } 100% { transform: none; } }
+.lvl-burst { position: absolute; left: 50%; top: 35%; width: 0; height: 0; z-index: 6; pointer-events: none; }
+.lvl-burst i { position: absolute; width: 14px; height: 14px; margin: -7px; background: var(--led); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); animation: star-out 1s ease-out forwards; }
+@keyframes star-out { from { transform: rotate(var(--a)) translateY(0) scale(.3); opacity: 1; } to { transform: rotate(var(--a)) translateY(calc(-70px * var(--d))) scale(1); opacity: 0; } }
+.lvl-text { position: absolute; left: 0; top: -10px; translate: -50% -50%; white-space: nowrap; font-family: var(--font-display); font-size: 22px; color: var(--led); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; text-shadow: 3px 3px 0 var(--ink); animation: lvl-text 1.3s cubic-bezier(.2,1.4,.4,1) forwards; }
+@keyframes lvl-text { 0% { transform: scale(.3) rotate(-8deg); opacity: 0; } 20% { transform: scale(1.15) rotate(-4deg); opacity: 1; } 75% { transform: translateY(-18px) scale(1) rotate(-4deg); opacity: 1; } 100% { transform: translateY(-34px) scale(.95) rotate(-4deg); opacity: 0; } }
+.badge.counting.up { background-color: #8ff0b0; }
+.badge.counting.down { background-color: #ff9a8a; }
+.offer.deal { animation: deal .4s cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes deal { from { transform: translateY(30px) rotate(-8deg) scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.stage.shake-small { animation: shake-s .3s linear; }
+.stage.shake-big { animation: shake-b .42s linear; }
+@keyframes shake-s { 0%, 100% { transform: none; } 20% { transform: translate(-3px, 2px); } 40% { transform: translate(3px, -2px); } 60% { transform: translate(-2px, 1px); } 80% { transform: translate(2px, -1px); } }
+@keyframes shake-b { 0%, 100% { transform: none; } 15% { transform: translate(-7px, 4px) rotate(-.4deg); } 30% { transform: translate(6px, -4px) rotate(.4deg); } 45% { transform: translate(-5px, 2px); } 60% { transform: translate(4px, -2px); } 80% { transform: translate(-2px, 1px); } }
+.chip { position: absolute; z-index: 30; width: 10px; height: 10px; margin: -5px; background: #dff3ff; border: 2px solid #3f7fd0; border-radius: 2px; pointer-events: none; animation: chip .6s cubic-bezier(.2,.7,.4,1) forwards; }
+@keyframes chip { from { transform: translate(0, 0) scale(var(--s)) rotate(0); opacity: 1; } to { transform: translate(var(--dx), calc(var(--dy) + 40px)) scale(var(--s)) rotate(200deg); opacity: 0; } }
+.tooth { position: absolute; z-index: 31; width: 12px; height: 15px; margin: -7px; background: #fffdf2; border: 2px solid var(--ink); border-radius: 40% 40% 30% 30% / 30% 30% 60% 60%; pointer-events: none; animation: tooth .95s cubic-bezier(.3,.6,.6,1) forwards; }
+@keyframes tooth { 0% { transform: translate(0, 0) rotate(0); } 40% { transform: translate(calc(var(--dx) * .5), -60px) rotate(260deg); } 100% { transform: translate(var(--dx), 40px) rotate(560deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .offer.deal, .slot.lvl-up .pad, .slot.landed .pad, .stage.shake-small, .stage.shake-big { animation: none; } }
 /* Deadline Rental: the tag hangs over a traded goon's head; a goon shipped to an empty slot skates off. */
 .fighter .rental-tag { display: none; width: clamp(48px, calc(6 * var(--vw)), 80px); rotate: -8deg; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
 .fighter.rented .rental-tag { display: block; }
@@ -325,10 +351,13 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   background: var(--board); border: 3px solid var(--ink); border-radius: 12px; box-shadow: 3px 3px 0 var(--ink); padding: 8px 11px 9px;
   display: grid; gap: 3px; transform: translate(-50%, calc(-100% - 12px));
 }
+.tip[hidden] { display: none; } /* without this, "display: grid" above kept a hidden description on screen */
 .tip::after { content: ""; position: absolute; left: var(--arrow, 50%); bottom: -11px; width: 14px; height: 14px; background: var(--board); border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
 .tip .tn { font-family: var(--font-display); font-size: 15px; line-height: 1.1; }
 .tip .tl { font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
 .tip .tt { font-size: 13.5px; line-height: 1.35; }
+/* Numbers that grow with level: gold on a dark chip, so they stand out from fixed numbers. */
+.tip .dyn { display: inline-block; font-family: var(--font-display); font-weight: 400; color: #ffd84a; background: #1b1f2a; border-radius: 5px; padding: 0 5px; margin: 0 1px; line-height: 1.35; font-size: 13px; letter-spacing: .3px; }
 .fighter { cursor: help; }
 
 /* ---------- Toast and end screen ---------- */
@@ -2026,7 +2055,9 @@ for (const [fn, snd] of Object.entries({ buyGoon: "cash", buyGear: "cash", sell:
   const orig = window.HG[fn];
   window.HG[fn] = (...args) => {
     const st = args[0], before = st?.lineup ? levelSum(st) : 0;
+    juiceBefore(fn, args);
     const r = orig(...args);
+    if (r && r.ok) juiceAfter(fn, args); else juicePending = null;
     if (r && r.ok) {
       const leveled = st?.lineup && levelSum(st) > before;
       if (leveled) { Sfx.play("heal", { vol: 0.8, rate: 1.25 }); Sfx.play("bell", { vol: 0.35, rate: 1.6, delay: 0.05 }); }
@@ -2148,6 +2179,115 @@ function playFlip() {
   });
 }
 
+// ---------- Juice ----------
+// Little reactions that make the shop feel alive: bought goons fly to their slot, stats count up,
+// level-ups burst, sold goons pay out pucks, rolls deal fresh cards. Purely visual: no game rules here.
+const shown = new WeakMap(); // owned goon -> stats last shown on screen
+let juicePending = null, dealNext = false;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function buzz(ms) { try { if (settings.sfx && navigator.vibrate) navigator.vibrate(ms); } catch {} }
+function juiceBefore(fn, args) {
+  juicePending = null;
+  if (fn === "buyGoon") {
+    const el = document.querySelector(`[data-goon="${args[1] - 1}"] img`);
+    if (el) juicePending = { kind: "goon", rect: el.getBoundingClientRect(), src: el.src };
+  } else if (fn === "buyGear") {
+    const el = document.querySelector(`[data-gear="${args[1] - 1}"] .gear-art`);
+    if (el) juicePending = { kind: "gear", rect: el.getBoundingClientRect(), html: el.innerHTML, slot: args[2] };
+  } else if (fn === "sell") {
+    const el = document.querySelector(`[data-slot="${args[1] - 1}"] img.sprite`);
+    if (el) juicePending = { kind: "sell", rect: el.getBoundingClientRect(), pucks: args[0].pucks };
+  }
+}
+function juiceAfter(fn, args) {
+  if (fn === "roll") dealNext = true;
+  if (fn === "sell" && juicePending) juicePending.pucks = args[0].pucks - juicePending.pucks;
+}
+// Fly a copy of something from one spot on screen to another (screen coordinates, outside the scaled game).
+function flyClone(html, from, to, ms = 380) {
+  if (reduceMotion || !from || !to) return Promise.resolve();
+  const d = document.createElement("div");
+  d.className = "fly-clone";
+  d.innerHTML = html;
+  Object.assign(d.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
+  document.body.appendChild(d);
+  void d.offsetWidth;
+  d.style.transition = `left ${ms}ms cubic-bezier(.3,.9,.4,1), top ${ms}ms cubic-bezier(.5,-0.4,.6,1), width ${ms}ms, height ${ms}ms, opacity .15s ${ms - 120}ms`;
+  Object.assign(d.style, { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`, opacity: "0.2" });
+  return new Promise((res) => setTimeout(() => { d.remove(); res(); }, ms));
+}
+// Count a stat badge up (or down) to its new value with a pop.
+function countTo(badge, from, to) {
+  if (!badge || from === to) return;
+  const steps = Math.min(8, Math.abs(to - from));
+  let i = 0;
+  badge.classList.add("counting", to > from ? "up" : "down");
+  const tick = () => {
+    i++;
+    badge.textContent = Math.round(from + (to - from) * (i / steps));
+    bump(badge);
+    if (i < steps) setTimeout(tick, 70);
+    else setTimeout(() => badge.classList.remove("counting", "up", "down"), 300);
+  };
+  badge.textContent = from;
+  setTimeout(tick, 120);
+}
+function levelBurst(slotEl, level) {
+  const pad = slotEl.querySelector(".pad");
+  if (!pad) return;
+  slotEl.classList.remove("lvl-up"); void slotEl.offsetWidth; slotEl.classList.add("lvl-up");
+  const b = document.createElement("div");
+  b.className = "lvl-burst";
+  b.innerHTML = `<span class="lvl-text">LEVEL ${level}!</span>` + Array.from({ length: 10 }, (_, i) => `<i style="--a:${i * 36}deg;--d:${0.9 + (i % 3) * 0.25}"></i>`).join("");
+  pad.appendChild(b);
+  buzz([20, 40, 30]);
+  setTimeout(() => { b.remove(); slotEl.classList.remove("lvl-up"); }, 1400);
+}
+function puckPayout(fromRect, n) {
+  const to = $("sb-pucks").getBoundingClientRect();
+  for (let i = 0; i < Math.max(1, n); i++) {
+    setTimeout(() => {
+      const r = { left: fromRect.left + fromRect.width / 2 - 9, top: fromRect.top + fromRect.height * 0.4, width: 18, height: 11 };
+      flyClone('<i class="fly-puck"></i>', r, { left: to.left + to.width / 2 - 9, top: to.top + to.height / 2 - 5, width: 18, height: 11 }, 520).then(() => bump($("sb-pucks")));
+    }, i * 110);
+  }
+}
+// After the shop redraws: compare each goon with what was last shown and animate the difference.
+function shopJuice() {
+  const pend = juicePending;
+  juicePending = null;
+  const pep = p.pepTalk ? 1 : 0;
+  stage.querySelectorAll("[data-slot]").forEach((el) => {
+    const g = p.lineup[Number(el.dataset.slot)];
+    if (!g) return;
+    const s = goonStats(g), now = { punch: s.punch + pep, toughness: s.toughness, level: s.level, copies: g.copies };
+    const before = shown.get(g);
+    shown.set(g, now);
+    const img = el.querySelector("img.sprite");
+    const [pb, tb] = el.querySelectorAll(".badge");
+    const arrived = pend && pend.kind === "goon" && (!before || now.copies > before.copies);
+    if (arrived && img) {
+      // The bought goon flies from his shop card into his slot.
+      img.style.opacity = "0";
+      flyClone(`<img src="${pend.src}" alt="">`, pend.rect, img.getBoundingClientRect()).then(() => { img.style.opacity = ""; el.classList.add("landed"); setTimeout(() => el.classList.remove("landed"), 400); });
+    }
+    if (!before) return;
+    if (now.punch !== before.punch) countTo(pb, before.punch, now.punch);
+    if (now.toughness !== before.toughness) countTo(tb, before.toughness, now.toughness);
+    if (now.level > before.level) setTimeout(() => levelBurst(el, now.level), arrived ? 380 : 60);
+  });
+  if (pend && pend.kind === "gear") {
+    const target = pend.slot ? stage.querySelector(`[data-slot="${pend.slot - 1}"] img.sprite`) : null;
+    const to = target ? target.getBoundingClientRect() : $("sb-pucks").getBoundingClientRect();
+    flyClone(pend.html, pend.rect, { left: to.left + to.width * 0.3, top: to.top + to.height * 0.3, width: to.width * 0.4, height: to.width * 0.4 });
+  }
+  if (pend && pend.kind === "sell") puckPayout(pend.rect, pend.pucks);
+  if (dealNext) {
+    dealNext = false;
+    tray.querySelectorAll(".offer:not(.frozen)").forEach((o, i) => { o.style.animationDelay = `${i * 55}ms`; o.classList.add("deal"); });
+  }
+}
+
 function act(result) {
   if (!result) return;
   if (!result.ok) toast(result.message, true);
@@ -2161,6 +2301,7 @@ function renderScoreboard() {
   $("sb-round").textContent = p.round;
   $("sb-wins").textContent = `${p.wins}/${WINS_TO_CHAMPIONSHIP}`;
   $("sb-losses").textContent = `${p.losses}/${LOSSES_TO_END}`;
+  if ($("sb-pucks").textContent !== String(p.pucks)) bump($("sb-pucks"));
   $("sb-pucks").textContent = p.pucks;
 }
 
@@ -2190,6 +2331,7 @@ function render() {
 
 function renderLineup() {
   queueMicrotask(playFlip);
+  queueMicrotask(shopJuice);
   const order = [...Array(LINEUP_SLOTS).keys()].reverse(); // slot 5 on the left, slot 1 (front) on the right
   const slotTarget = sel && (sel.type === "goon" || (sel.type === "gear" && GEAR_BY_ID[p.gearOffers[sel.i]?.id]?.target === "goon") || sel.type === "slot");
   let html = `<div class="lineup-label">${p.championship ? "Championship next" : "Your lineup · front goon fights first"}</div><div class="lineup">`;
@@ -2338,11 +2480,60 @@ function onSlot(k) {
 
 // ---------- Ability tip ----------
 // Hover a goon (mouse) or tap one in a fight to see his ability in a box above him.
+// A goon's ability spelled out with the real numbers for his level. Numbers that grow when he levels up
+// are highlighted (class "dyn"), so players can see which parts of the ability scale.
+function abilityHtml(d, level) {
+  const a = d.ability, L = level;
+  const N = (x) => `<b class="dyn">${x}</b>`;
+  const times = (n) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
+  const label = d.abilityText.includes(":") ? `<b>${esc(d.abilityText.split(":")[0])}:</b> ` : "";
+  const t = {
+    weakenEnemyFront: () => `start of fight, the enemy front goon loses ${N(a.amount * L)} punch.`,
+    damageEnemyFront: () => `start of fight, deal ${N(a.amount * L)} damage to the enemy front goon.`,
+    onKnockedOutBuffBehind: () => `the goon behind him gets +${N(a.amount * L)} punch and +${N(a.amount * L)} toughness.`,
+    onKnockedOutWeakenKiller: () => `when he's knocked out, the goon who did it breaks his knuckles and loses ${N(a.amount * L)} punch.`,
+    endOfShopGainToughness: () => `gains +${N(a.amount * L)} toughness permanently.`,
+    endOfShopBuffFrontPunch: () => `end of each shop phase, the goon in front of him gets +${N(a.amount * L)} punch permanently.`,
+    punchSplashBehind: () => `every punch also hits the enemy goon behind the front one for ${N(a.amount * L)}.`,
+    hookBackToFront: () => `start of fight, hooks the enemy's back goon, drags him to the front and deals ${N(a.amount * L)} damage.`,
+    firstPunchMultiplier: () => `his first punch of every fight deals ${N("×" + (1 + (a.multiplier - 1) * L))} damage.`,
+    mutualDamageFront: () => `start of fight, he and the enemy front goon both take ${N(a.amount * L)} damage.`,
+    snipeWeakest: () => `start of fight, deal ${N(a.amount * L)} damage to the enemy goon with the lowest toughness.`,
+    onHurtHitBack: () => `deals ${N(a.amount * L)} damage back to whoever hit him.`,
+    sparkAhead: () => `after every exchange, zaps the teammate directly in front of him for +${N(a.amount * L)} punch and +${N(a.amount * L)} toughness. It keeps building all fight.`,
+    stickThrow: () => `at the start of the fight he throws his stick at the enemy's best buffer (spark plugs first, then healers) for ${a.damage} damage and pins him: no healing or buffing for ${N(a.pin + L)} exchanges. No buffer? It hits the front goon for ${a.fallback}. Without his stick he fights with 1 less punch.`,
+    summonOnKnockout: () => `when he's knocked out, his twin brother steps in to take his spot as a ${N(a.punch * L + "/" + a.toughness * L)}.`,
+    healFront: () => `after every exchange, heals your front goon for ${N(a.amount * L)} (never above his best toughness this fight).`,
+    whipBackswing: () => `his punches deal +${N(a.amount * L)} damage, but his backswing hits the teammate behind him for 1. Line up a goon who likes getting hit.`,
+    bonusPucks: () => `while he's in your lineup, every shop phase starts with +${N(a.amount * L)} puck${a.amount * L === 1 ? "" : "s"}.`,
+    reviveOnce: () => `gets back up once with ${N(a.toughness * L)} toughness.`,
+    onHurtThrowRandom: () => `every time he takes a hit, he throws a glove at ${N(L === 1 ? "a random enemy" : L + " random enemies")} for ${a.amount}${L > 1 ? " each" : ""}.`,
+    lassoTopPuncher: () => `start of fight, ropes ${N(L === 1 ? "the enemy goon" : "the " + L + " enemy goons")} with the most punch. Each misses his next punch.`,
+    onHurtGainPunch: () => `gains +${N(a.amount * L)} punch for this fight.`,
+    buffBehindPunch: () => `every goon behind him gets +${N(a.amount * L)} punch.`,
+    toughnessPerTeammateBehind: () => `start of fight, gains +${N(a.amount * L)} toughness for each teammate behind him.`,
+    buffFrontToughness: () => `your front goon gets +${N(a.amount * L)} toughness.`,
+    onKnockoutGainStats: () => `gains +${N(a.amount * L)} punch and +${N(a.amount * L)} toughness for this fight.`,
+    damageAllEnemies: () => `deal ${N(a.amount * L)} damage to every enemy goon.`,
+    reduceDamage: () => `every hit he takes deals ${N(a.amount * L)} less damage (always at least 1).`,
+    lastStandingGainPunch: () => `+${N(a.amount * L)} punch.`,
+    saveTeammate: () => `the first ${N(times(a.uses * L) === "once" ? "time" : a.uses * L + " times")} a teammate would be knocked out, he survives with 1 toughness.`,
+    onTeammateDownHitFront: () => `every time a teammate is knocked out, he deals ${N(a.amount * L)} damage to the enemy front goon.`,
+    trophyHunter: () => `every time he knocks someone out, he gains +${N(a.amount * L)}/+${N(a.amount * L)} for the rest of the run, not just the fight.`,
+  }[a.kind];
+  if (!t) return esc(d.abilityText);
+  let body = t();
+  // Don't repeat a trigger the label already says ("Start of fight: start of fight, ...").
+  const lab = d.abilityText.split(":")[0].toLowerCase();
+  if (lab === "start of fight" && body.startsWith("start of fight, ")) body = body.slice(16);
+  // Keep the goon's own wording before the colon (his move name or trigger), then the live numbers.
+  return label ? label + body : body.charAt(0).toUpperCase() + body.slice(1);
+}
 function tipText(id, level, worn) {
   const d = GOON_BY_ID[id];
-  const lvl = level > 1 ? `Level ${level}: ability numbers ×${level}` : `Tier ${d.tier}${d.goalie ? " · goalie" : ""}`;
+  const lvl = `${level > 1 ? `Level ${level}` : "Level 1"} · Tier ${d.tier}${d.goalie ? " · goalie" : ""}`;
   const w = worn && GEAR_BY_ID[worn] ? `<span class="tt"><b>Wearing ${esc(GEAR_BY_ID[worn].name)}:</b> ${esc(GEAR_BY_ID[worn].text.replace(/^Worn: /, ""))}.</span>` : "";
-  return `<span class="tn">${esc(d.name)}</span><span class="tl">${lvl}</span><span class="tt">${esc(d.abilityText)}</span>${w}`;
+  return `<span class="tn">${esc(d.name)}</span><span class="tl">${lvl}</span><span class="tt">${abilityHtml(d, level)}</span>${w}`;
 }
 function gearTipText(id) {
   const d = GEAR_BY_ID[id];
@@ -2643,6 +2834,14 @@ async function playFight(r) {
       case "impact": {
         const hurt = Math.max(0, ...current.map((f) => { const b = prev.find((x) => x.uid === f.uid); return b ? b.toughness - f.toughness : 0; }));
         if (hurt >= 3 || Math.random() < 0.3) Sfx.play("grunt", { vol: hurt >= 5 ? 0.9 : 0.6 });
+        // Big hits: a short freeze on contact, a rink shake and ice chips off whoever took it.
+        if (!skipping) {
+          for (const f of current) {
+            const b = prev.find((x) => x.uid === f.uid);
+            if (b && b.toughness - f.toughness > 0) iceChips(pos.get(f.uid), layer, Math.min(10, 3 + (b.toughness - f.toughness)));
+          }
+          if (hurt >= 4) { await sleep(70); shake(hurt >= 6 ? "big" : "small"); buzz(hurt >= 6 ? 45 : 25); }
+        }
         diff(prev, current, pos, layer);
         await sleep(520);
         break;
@@ -2734,6 +2933,7 @@ async function playFight(r) {
         const el = pos.get(ev.actors[0]);
         const f = current.find((x) => x.uid === ev.actors[0]);
         if (el) el.classList.add("ko", f.team === 0 ? "mine" : "theirs");
+        if (!skipping) { shake("big"); buzz([40, 30, 60]); flyingTooth(el, layer); iceChips(el, layer, 12); }
         Sfx.play("grunt", { vol: 0.9, rate: 0.85 });
         Sfx.play("glass", { vol: 0.9, delay: 0.32 / speed });
         await sleep(520);
@@ -2954,6 +3154,39 @@ function abilitySound(kind, text) {
     case "reduceDamage": S("punch", { vol: 0.4, rate: 0.7 }); break;
     default: S("punch", { vol: 0.5, rate: 1.2 });
   }
+}
+
+// Fight juice: rink shake, ice chips and the odd flying tooth.
+function shake(size) {
+  if (reduceMotion) return;
+  const st = $("stage");
+  st.classList.remove("shake-small", "shake-big"); void st.offsetWidth;
+  st.classList.add(`shake-${size}`);
+  setTimeout(() => st.classList.remove(`shake-${size}`), 420);
+}
+function iceChips(el, layer, n) {
+  if (!el || reduceMotion) return;
+  const x = el.offsetLeft + el.offsetWidth / 2, y = el.offsetTop + el.offsetHeight * 0.55;
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement("i");
+    c.className = "chip";
+    const ang = (Math.random() * 160 - 170) * Math.PI / 180, dist = 30 + Math.random() * 55;
+    c.style.left = `${x}px`; c.style.top = `${y}px`;
+    c.style.setProperty("--dx", `${Math.cos(ang) * dist}px`); c.style.setProperty("--dy", `${Math.sin(ang) * dist}px`);
+    c.style.setProperty("--s", (0.5 + Math.random() * 0.8).toFixed(2));
+    layer.appendChild(c);
+    setTimeout(() => c.remove(), 650);
+  }
+}
+function flyingTooth(el, layer) {
+  if (!el || reduceMotion || Math.random() < 0.35) return;
+  const t = document.createElement("i");
+  t.className = "tooth";
+  t.style.left = `${el.offsetLeft + el.offsetWidth / 2}px`;
+  t.style.top = `${el.offsetTop + el.offsetHeight * 0.25}px`;
+  t.style.setProperty("--dx", `${(el.classList.contains("enemy") ? 1 : -1) * (60 + Math.random() * 60)}px`);
+  layer.appendChild(t);
+  setTimeout(() => t.remove(), 1000);
 }
 
 function shootPuck(fromEl, toEl, layer, kind = "puck") {
