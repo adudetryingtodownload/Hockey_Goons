@@ -223,6 +223,13 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 
 /* ---------- Fight ---------- */
 .fight-layer { position: absolute; inset: 0; }
+.fight-layer.cam { background: #0e1420 var(--rink) no-repeat; transition: transform 1s cubic-bezier(.45,0,.25,1); will-change: transform; }
+.fight-hud { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
+.fight-hud > * { pointer-events: auto; }
+.fighter.skating-in { transition: left 1.05s cubic-bezier(.4,0,.2,1), transform .25s, opacity .3s; }
+.fighter.skating-in .body { animation: skate-stride .26s ease-in-out infinite alternate; }
+@keyframes skate-stride { from { rotate: -4deg; translate: 0 0; } to { rotate: 4deg; translate: 0 -3px; } }
+.fighter.enemy.skating-in .body { animation-direction: alternate-reverse; }
 .team-name {
   position: absolute; top: 12px; font-family: var(--font-display); color: var(--board); text-shadow: 2px 2px 0 var(--ink); font-size: clamp(14px, calc(2.4 * var(--vw)), 22px); z-index: 3;
 }
@@ -2754,11 +2761,15 @@ async function playFight(r) {
   const mine = p.lineup.filter(Boolean), theirs = r.opponent.lineup.filter(Boolean);
   [...mine, ...theirs].forEach((g, uid) => levels.set(uid, levelForCopies(g.copies)));
   hideTip();
-  stage.innerHTML = `<div class="fight-layer" id="fl">
+  // The fight layer is the "camera": the rink picture and everything on the ice zoom together.
+  // Team names and the ticker sit in a HUD on top that never zooms.
+  stage.innerHTML = `<div class="fight-layer cam" id="fl"></div>
+    <div class="fight-hud">
       <div class="team-name left">You</div>
       <div class="team-name right">${esc(r.opponent.name)}</div>
       <div class="ticker" id="ticker">${r.wasChampionship ? "The championship! " : ""}Gloves are off…</div>
     </div>`;
+  frameRink();
   tray.innerHTML = `<div class="info"><span class="title">${r.wasChampionship ? "Championship" : `Round ${p.round - (p.over ? 0 : 1)}`}</span><span class="text">Your goons on the left, ${esc(r.opponent.name)} on the right. The front goons trade punches until one team is out.</span></div>
     <div class="fight-controls"><button class="btn" id="speed">Speed ×1</button><button class="btn" id="skip">Skip to result</button></div>`;
   $("speed").onclick = () => { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; $("speed").textContent = `Speed ×${speed}`; };
@@ -2785,11 +2796,21 @@ async function playFight(r) {
   const coaches = addBenchCoaches(layer, r.opponent.name);
   let current = first;
   let exchangeSnap = null;
-  layout(current, pos);
+  // Wide shot: the teams start spread out toward the corners...
+  layout(current, pos, skipping ? 0 : 1);
   Sfx.crowd("crowdfight", 0.32);
   Sfx.music("fight");
   await sleep(380);
   await fightSlam(layer);
+  // ...then skate in to fighting distance while the camera pushes in on the fight line.
+  if (!skipping) {
+    pos.forEach((el) => el.classList.add("skating-in"));
+    layout(current, pos);
+    camera(layer, true);
+    Sfx.play("woosh", { vol: 0.5, rate: 0.7 });
+    await sleep(1050);
+    pos.forEach((el) => el.classList.remove("skating-in"));
+  } else camera(layer, true);
 
   for (const ev of events) {
     const prev = current;
@@ -2956,6 +2977,8 @@ async function playFight(r) {
     }
   }
   // Both teams out: the coaches come off the benches and settle it.
+  camera(layer, false); // pull back so the benches are in view for the end of the round
+  await sleep(400);
   if (current.every((f) => f.removed) || r.result.decidedBy !== "fight") await coachBrawl(r, coaches, layer);
   else {
     // End of the round: the winning coach celebrates, the losing coach loses it.
@@ -3000,6 +3023,8 @@ function frameRink() {
   const { sc, ox, oy } = rinkFrame(W, H);
   stage.style.backgroundSize = `${RINK.w * sc}px ${RINK.h * sc}px`;
   stage.style.backgroundPosition = `${ox}px ${oy}px`;
+  const cam = stage.querySelector(".cam");
+  if (cam) { cam.style.backgroundSize = stage.style.backgroundSize; cam.style.backgroundPosition = stage.style.backgroundPosition; }
 }
 function placeCoach(c) {
   const host = c.parentElement;
@@ -3302,25 +3327,59 @@ function popup(el, layer, text, cls) {
 }
 
 // Front goons meet at center ice; the rest queue up behind, a little smaller.
-function layout(snap, pos) {
+// spread: 0 = fighting distance; 1 = the opening wide shot, each team pushed out toward its end of the rink
+// (as far as the screen allows without anyone going off the edge).
+function layout(snap, pos, spread = 0) {
   const layer = $("fl");
   const W = layer.clientWidth;
   const tall = document.body.classList.contains("portrait");
   const cw = Math.min(190, tall ? W / 6.4 : W / 7.2);
   const step = cw * (tall ? 0.56 : 0.66);
   const gap = cw * 0.12;
+  const xs = [];
   for (const side of [0, 1]) {
     const alive = snap.filter((f) => f.team === side && !f.removed);
     alive.forEach((f, i) => {
-      const el = pos.get(f.uid);
       const w = i === 0 ? cw : cw * 0.82;
-      el.style.width = `${w}px`;
-      el.style.zIndex = String(10 - i);
-      el.classList.toggle("front", i === 0);
       const x = side === 0 ? W / 2 - gap - cw - i * step + (i ? cw - w : 0) : W / 2 + gap + i * step;
-      el.style.left = `${x}px`;
+      xs.push({ f, i, w, x, side });
     });
   }
+  let push = 0;
+  if (spread && xs.length) {
+    const room = Math.min(...xs.map((o) => (o.side === 0 ? o.x - 8 : W - (o.x + o.w) - 8)));
+    push = Math.max(0, Math.min(W * 0.2, room)) * spread;
+  }
+  for (const { f, i, w, x, side } of xs) {
+    const el = pos.get(f.uid);
+    el.style.width = `${w}px`;
+    el.style.zIndex = String(10 - i);
+    el.classList.toggle("front", i === 0);
+    el.style.left = `${x + (side === 0 ? -push : push)}px`;
+  }
+  if (camOn) updateCamera(layer);
+}
+// The fight camera: pushed in on the fight line during the brawl, pulled back for the wide shots.
+// It only zooms as far as keeps every goon still standing on screen, so it tightens as the lines thin out.
+let camOn = false;
+function camera(layer, close) {
+  camOn = close && !reduceMotion;
+  updateCamera(layer);
+}
+function updateCamera(layer = $("fl")) {
+  if (!layer) return;
+  const tall = document.body.classList.contains("portrait");
+  if (!camOn) { layer.style.transform = ""; return; }
+  const W = layer.clientWidth, mid = W / 2;
+  let reach = 0;
+  layer.querySelectorAll(".fighter:not(.ko):not(.shipped)").forEach((el) => {
+    const x = parseFloat(el.style.left) || 0, w = parseFloat(el.style.width) || el.offsetWidth;
+    reach = Math.max(reach, mid - x, x + w - mid);
+  });
+  const max = tall ? 1.12 : 1.18;
+  const zoom = reach > 0 ? Math.max(1, Math.min(max, (mid - 6) / reach)) : max;
+  layer.style.transformOrigin = `50% ${tall ? 66 : 72}%`;
+  layer.style.transform = zoom > 1.005 ? `scale(${zoom.toFixed(3)})` : "";
 }
 
 function showResult(r) {
