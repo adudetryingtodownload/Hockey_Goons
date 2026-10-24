@@ -2826,7 +2826,8 @@ async function playFight(r) {
     pos.forEach((el) => el.classList.remove("skating-in"));
   } else camera(layer, true);
 
-  for (const ev of events) {
+  const flown = new Set(); // knockouts already animated together with an earlier one
+  for (const [evIndex, ev] of events.entries()) {
     const prev = current;
     current = ev.snap;
     for (const f of current) pos.get(f.uid)?.classList.toggle("pinned", !!f.pinned);
@@ -2971,14 +2972,31 @@ async function playFight(r) {
         break;
       }
       case "ko": {
-        const el = pos.get(ev.actors[0]);
-        const f = current.find((x) => x.uid === ev.actors[0]);
-        if (el) el.classList.add("ko", f.team === 0 ? "mine" : "theirs");
-        if (!skipping) { shake("big"); buzz([40, 30, 60]); flyingTooth(el, layer); iceChips(el, layer, 12); }
+        if (flown.has(evIndex)) { layout(current, pos); break; } // already went flying with the goon before him
+        // Everyone knocked out by the same hit goes flying together: look ahead to the next exchange for
+        // other knockouts from this moment, so nobody stands on 0 waiting his turn.
+        const group = [evIndex];
+        for (let j = evIndex + 1; j < events.length; j++) {
+          const k = events[j].kind;
+          if (k === "exchange" || k === "impact" || k === "phase" || k === "result" || k === "coach") break;
+          if (k === "ko") group.push(j);
+        }
+        const settle = events[group[group.length - 1]].snap;
+        for (const gi of group) {
+          flown.add(gi);
+          const uid = events[gi].actors[0];
+          const el = pos.get(uid);
+          const f = settle.find((x) => x.uid === uid) ?? current.find((x) => x.uid === uid);
+          if (el) el.classList.add("ko", f.team === 0 ? "mine" : "theirs");
+          if (!skipping) { flyingTooth(el, layer); iceChips(el, layer, 12); }
+        }
+        if (group.length > 1) $("ticker").textContent = `Double knockout! ${group.map((gi) => events[gi].text.replace(/ is knocked out$/, "")).join(" and ")} both go down`;
+        if (!skipping) { shake("big"); buzz([40, 30, 60]); }
         Sfx.play("grunt", { vol: 0.9, rate: 0.85 });
+        if (group.length > 1) Sfx.play("grunt", { vol: 0.8, rate: 1.05, delay: 0.05 });
         Sfx.play("glass", { vol: 0.9, delay: 0.32 / speed });
         await sleep(520);
-        layout(current, pos);
+        layout(settle, pos);
         await sleep(260);
         break;
       }
