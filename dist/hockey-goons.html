@@ -333,6 +333,20 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .pin-tag { display: none; font-size: 10px; font-weight: 800; letter-spacing: 1px; background: #e23b2e; color: #fff; border: 2px solid var(--ink); border-radius: 5px; padding: 0 5px; line-height: 1.5; }
 .fighter.pinned .pin-tag { display: block; }
 @keyframes glove-spin { to { rotate: 360deg; } }
+/* Henry Hook's stick: floats over, hooks a goon from behind and drags him to the front. */
+.hook-stick { position: absolute; z-index: 36; width: clamp(40px, calc(5.6 * var(--vw)), 80px); pointer-events: none; translate: -50% -90%; transform-origin: 45% 88%; animation: hook-sway .45s ease-in-out infinite alternate; filter: drop-shadow(2px 3px 0 rgba(27,31,42,.3)); }
+.hook-stick svg { display: block; width: 100%; height: auto; }
+.hook-stick.enemy-throw { scale: -1 1; }
+.hook-stick.caught { animation: none; rotate: -24deg; transition: rotate .12s; }
+.hook-stick.enemy-throw.caught { rotate: 24deg; }
+@keyframes hook-sway { from { rotate: -9deg; } to { rotate: 9deg; } }
+.fighter.hooked { rotate: 10deg; transform-origin: 50% 100%; }
+.fighter.hooked:not(.enemy) { rotate: -10deg; }
+.fighter.dragged { transition: left var(--drag, .6s) cubic-bezier(.45,0,.25,1), transform .25s, opacity .3s, rotate .18s; }
+/* Overtime: the goons are worn out and every exchange hurts more. */
+.overtime-banner { position: absolute; left: 50%; top: 24%; translate: -50% -50%; z-index: 60; pointer-events: none; white-space: nowrap; font-weight: 900; font-size: clamp(34px, 9vw, 92px); line-height: 1; letter-spacing: .04em; color: #ffd23f; -webkit-text-stroke: 3px #1b1f2a; paint-order: stroke fill; text-shadow: 0 6px 0 #c4321f; animation: overtime-pop 1.7s ease-out forwards; }
+.overtime-banner small { display: block; margin-top: 8px; font-size: .28em; letter-spacing: .08em; color: #fff; -webkit-text-stroke: 2px #1b1f2a; text-shadow: none; }
+@keyframes overtime-pop { 0% { scale: 2.4; opacity: 0; } 14% { scale: 1; opacity: 1; } 78% { scale: 1; opacity: 1; } 100% { scale: .9; opacity: 0; } }
 .wham { position: absolute; z-index: 4; width: clamp(80px, calc(12 * var(--vw)), 140px); pointer-events: none; animation: wham .55s ease-out forwards; }
 @keyframes wham { from { transform: translate(-50%, -50%) scale(.3) rotate(-10deg); opacity: 0 } 30% { transform: translate(-50%, -50%) scale(1.1) rotate(4deg); opacity: 1 } to { transform: translate(-50%, -50%) scale(1); opacity: 0 } }
 .ticker {
@@ -505,6 +519,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .switch { width: 52px; height: 30px; border-radius: 999px; border: 3px solid var(--ink); background: #c7ced8; position: relative; flex: none; padding: 0; }
 .switch.on { background: var(--good); }
 .switch.on::after { left: auto; right: 2px; }
+.name-form { max-width: 520px; margin: 0 auto; display: grid; gap: 14px; justify-items: start; background: var(--board); color: var(--ink); border: 3px solid var(--ink); border-radius: 12px; padding: 18px 20px; box-shadow: 4px 4px 0 rgba(0,0,0,.45); }
+.name-form b { font-family: var(--font-display); font-weight: 400; font-size: 20px; }
+.name-form small { display: block; color: var(--muted); font-weight: 600; }
+.name-input { font: inherit; font-size: 20px; font-weight: 700; width: min(340px, 100%); padding: 10px 14px; color: var(--ink); background: #fff; border: 3px solid var(--ink); border-radius: 10px; }
+.name-input:focus { outline: 3px solid var(--goal-red); outline-offset: 2px; }
 .set-row input[type="range"] { width: 160px; accent-color: var(--goal-red); }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--board); border: 2px solid var(--ink); box-sizing: border-box; }
 .soon { font-size: 11px; font-weight: 800; background: var(--led); border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; color: var(--ink); white-space: nowrap; }
@@ -831,6 +850,9 @@ const GEAR_BY_ID                          = Object.fromEntries(GEAR.map((g) => [
                                                                                               
 
 const FOIL_BONUS = 3;
+// Overtime: after this many exchanges the goons are worn out. At the end of every further exchange both front
+// goons take 1 more damage than the exchange before (1, 2, 3...), and nothing blocks it, so no stall can last.
+const OVERTIME_AFTER = 12;
 const CHIRP_AMOUNT = 2;
 
 // Copies of the same goon stack: each extra copy is +1 punch and +1 toughness.
@@ -900,13 +922,22 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
   const log           = [];
   const events               = [];
   let lineups                         = [[], []];
-  const say = (line        , kind                     = "info", actors            = []) => {
-    if (!verbose) return;
+  const snapshot = ()                     =>
+    [...lineups[0], ...lineups[1]].map((f) => ({ uid: f.uid, id: f.def.id, team: f.team, level: f.level, punch: f.punch, toughness: f.toughness, removed: f.removed, tied: f.tied > 0, worn: f.worn, rented: f.rented, pinned: f.pinned > 0 }));
+  const say = (line        , kind                     = "info", actors            = [])                         => {
+    if (!verbose) return undefined;
     if (line) log.push(line);
-    events.push({
-      kind, text: line.trim(), actors: actors.map((f) => f.uid),
-      snap: [...lineups[0], ...lineups[1]].map((f) => ({ uid: f.uid, id: f.def.id, team: f.team, level: f.level, punch: f.punch, toughness: f.toughness, removed: f.removed, tied: f.tied > 0, worn: f.worn, rented: f.rented, pinned: f.pinned > 0 })),
-    });
+    const ev             = { kind, text: line.trim(), actors: actors.map((f) => f.uid), snap: snapshot() };
+    events.push(ev);
+    return ev;
+  };
+  // Thrown and shot things (glove, slap shot, stick, rocket): the replay flies the object and shows the damage
+  // when it lands, so the event for the throw must carry the numbers AFTER the damage.
+  const sayThenHit = (line        , thrower         , target         , amount        , onHit             ) => {
+    const ev = say(line, "ability", [thrower, target]);
+    damage(target, amount, thrower);
+    onHit?.();
+    if (ev) ev.snap = snapshot();
   };
 
   let uidCounter = 0;
@@ -953,19 +984,20 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
   const usedUp                        = [];
   const dealt = [0, 0]; // damage each team has dealt to the other, for the double-knockout tiebreak
   // punch: true when this is a punch thrown at him (or his share of one, as a bodyguard). The Birdcage blocks everything else.
-  const damage = (target         , amount        , source                , punch = false) => {
+  // raw: overtime fatigue. It ignores the birdcage, Iron Jaw's cap and Otto's shrug, because it has to break stalls.
+  const damage = (target         , amount        , source                , punch = false, raw = false) => {
     if (target.removed || amount <= 0) return;
-    if (!punch && target.worn === "birdcage") {
+    if (!punch && !raw && target.worn === "birdcage") {
       say(`  ${label(target)}'s birdcage blocks it`, "ability", [target]);
       return;
     }
     target.peak = Math.max(target.peak, target.toughness);
     const tab = target.def.ability;
-    if (tab.kind === "capDamage" && amount > tab.amount) {
+    if (!raw && tab.kind === "capDamage" && amount > tab.amount) {
       say(`  ${label(target)}'s iron jaw holds: ${amount} damage becomes ${tab.amount}`, "ability", [target]);
       amount = tab.amount;
     }
-    if (tab.kind === "reduceDamage" && amount > 1) {
+    if (!raw && tab.kind === "reduceDamage" && amount > 1) {
       const cut = Math.min(tab.amount * target.level, amount - 1);
       amount -= cut;
       say(`  ${label(target)} shrugs it off: -${cut} damage`, "ability", [target]);
@@ -993,8 +1025,7 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
           const picks            = [];
           for (let k = 0; k < target.level && pool.length; k++) picks.push(pool.splice(Math.floor(rng.next() * pool.length), 1)[0]);
           for (const t of picks) {
-            say(`  ${label(target)} blows his top and throws a glove at ${t.def.name} for ${ab.amount}`, "ability", [target, t]);
-            damage(t, ab.amount, target);
+            sayThenHit(`  ${label(target)} blows his top and throws a glove at ${t.def.name} for ${ab.amount}`, target, t, ab.amount);
           }
         } else if (ab.kind === "onHurtHitBack" && source && !source.removed && source.team !== target.team) {
           say(`  ${label(target)} sucker punches back`, "ability", [target, source]);
@@ -1054,8 +1085,7 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
           if (mab.kind !== "onTeammateDownHitFront" || mate.toughness <= 0) continue;
           const t = front((1 - f.team)         );
           if (!t) continue;
-          say(`  ${label(mate)} fires a rocket at ${t.def.name} for ${mab.amount * mate.level}`, "ability", [mate, t]);
-          damage(t, mab.amount * mate.level, mate);
+          sayThenHit(`  ${label(mate)} fires a rocket at ${t.def.name} for ${mab.amount * mate.level}`, mate, t, mab.amount * mate.level);
         }
         if (killer && !killer.removed && killer.team !== f.team && killer.def.ability.kind === "trophyHunter") {
           const n = killer.def.ability.amount * killer.level;
@@ -1169,8 +1199,7 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
       // Lowest toughness; ties go to the goon closest to the front.
       const t = alive(enemy).reduce                ((best, x) => (!best || x.toughness < best.toughness ? x : best), null);
       if (t) {
-        say(`  ${label(f)} fires a slap shot at ${t.def.name} for ${ab.amount * f.level}`, "ability", [f, t]);
-        damage(t, ab.amount * f.level, f);
+        sayThenHit(`  ${label(f)} fires a slap shot at ${t.def.name} for ${ab.amount * f.level}`, f, t, ab.amount * f.level);
       }
     } else if (ab.kind === "lassoTopPuncher") {
       // Hardest punchers first; ties go to the goon closest to the front. Already-roped goons are skipped.
@@ -1183,13 +1212,16 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
       const enemies = alive(enemy);
       const t = enemies[enemies.length - 1];
       if (t) {
+        // The replay floats his stick over, hooks the goon and drags him to the front, then shows the damage,
+        // so the event carries the new line order and the numbers after the hit.
         if (enemies.length > 1) {
           const line = lineups[enemy];
           line.splice(line.indexOf(t), 1);
           line.unshift(t);
-          say(`  ${label(f)} hooks ${t.def.name} and drags him to the front`, "ability", [f, t]);
+          sayThenHit(`  ${label(f)} hooks ${t.def.name} and drags him to the front`, f, t, ab.amount * f.level);
+        } else {
+          sayThenHit(`  ${label(f)} hooks ${t.def.name} and yanks him off his skates`, f, t, ab.amount * f.level);
         }
-        damage(t, ab.amount * f.level, f);
       }
     } else if (ab.kind === "stickThrow") {
       // Best buffer first: healers and spark plugs, then start-of-fight buffers; higher level, then closest to the back.
@@ -1201,13 +1233,11 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
       if (t) {
         const n = ab.pin + f.level;
         t.pinned = n;
-        say(`  ${label(f)} throws his stick at ${t.def.name} for ${ab.damage} and pins him: no buffs for ${n} exchanges`, "ability", [f, t]);
-        damage(t, ab.damage, f);
+        sayThenHit(`  ${label(f)} throws his stick at ${t.def.name} for ${ab.damage} and pins him: no buffs for ${n} exchanges`, f, t, ab.damage);
       } else {
         const front0 = front(enemy);
         if (front0) {
-          say(`  ${label(f)} throws his stick at ${front0.def.name} for ${ab.fallback}`, "ability", [f, front0]);
-          damage(front0, ab.fallback, f);
+          sayThenHit(`  ${label(f)} throws his stick at ${front0.def.name} for ${ab.fallback}`, f, front0, ab.fallback);
         }
       }
     } else if (ab.kind === "toughnessPerTeammateBehind") {
@@ -1337,6 +1367,17 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
         ahead.toughness += n;
         say(`  ${label(f)} sparks ${ahead.def.name}: +${n}/+${n} (${stats(ahead)})`, "buff", [f, ahead]);
       }
+    }
+    // Overtime: both front goons are worn out, and it gets worse every exchange. Nothing heals it away
+    // because it lands after Doc and Spark have done their work.
+    if (exchanges > OVERTIME_AFTER && front(0) && front(1)) {
+      const n = exchanges - OVERTIME_AFTER;
+      const tired = [front(0) , front(1) ];
+      for (const t of tired) damage(t, n, null, true, true);
+      say(exchanges === OVERTIME_AFTER + 1
+        ? `Overtime! The goons are worn out: both front goons take ${n}, and it gets worse every exchange`
+        : `Overtime: both front goons take ${n}`, "phase", tired);
+      resolve();
     }
     // Pins wear off one exchange at a time.
     for (const f of [...lineups[0], ...lineups[1]]) {
@@ -1951,6 +1992,38 @@ const settings = (() => {
   try { return { ...d, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; } catch { return d; }
 })();
 function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {} }
+
+// ---------- Game log (Supabase) ----------
+// Every run is recorded so Jon can see who's playing: a row when it starts, updated after every fight.
+// The page can only call log_run, which adds or updates this browser's own run. It can't read, change or delete anything else.
+const GAME_LOG = { url: "https://ddvzjvittvwvwtxelrjg.supabase.co", key: "sb_publishable_yqpF01KgFaAqN9FF2Lqk7g_V3It8wi4" };
+const RUN_ID_KEY = "hockey-goons-run-id";
+function newId() {
+  try { if (crypto.randomUUID) return crypto.randomUUID(); } catch {}
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+// An anonymous id for this browser, so two testers who type the same name can still be told apart.
+if (!settings.device) { settings.device = newId(); saveSettings(); }
+let runId = null;
+function startRunId() { runId = newId(); try { localStorage.setItem(RUN_ID_KEY, runId); } catch {} }
+function ensureRunId() { try { runId = localStorage.getItem(RUN_ID_KEY); } catch {} if (!runId) startRunId(); }
+function runStatus() { return !p.over ? "playing" : p.champion ? "champion" : p.championship ? "lost final" : "out"; }
+// Fire and forget: if the log can't be reached (offline, or a page that blocks it), the game carries on.
+function logRun() {
+  if (!run || !p) return;
+  if (!runId) ensureRunId();
+  const lineup = p.lineup.filter(Boolean).map((g) => `${GOON_BY_ID[g.id].name} L${levelForCopies(g.copies)}`).join(", ");
+  try {
+    fetch(`${GAME_LOG.url}/rest/v1/rpc/log_run`, {
+      method: "POST", keepalive: true,
+      headers: { apikey: GAME_LOG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_id: runId, p_device: settings.device, p_player: settings.name || "Anonymous", p_round: p.round, p_wins: p.wins, p_losses: p.losses, p_status: runStatus(), p_lineup: lineup, p_site: location.hostname || "file" }),
+    }).catch(() => {});
+  } catch {}
+}
 const Sfx = (() => {
   let ctx = null, master = null, bedGain = null, bed = null, bedName = "", bedGroup = "";
   let musGain = null, mus = null, musName = "", musWant = "", stingEnd = 0;
@@ -2152,6 +2225,8 @@ const ATTACK_FIT = { eddie: 1.0, larry: 1.15, tommy: 1.05, dusty: 1.0, randy: 0.
 const SPECIAL_FIT = { richard: 1.15 };
 const HEAL_SVG = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="42" height="42" rx="10" fill="#fbfaf6" stroke="#14161f" stroke-width="4"/><path d="M19 11 h10 v8 h8 v10 h-8 v8 h-10 v-8 h-8 v-10 h8 z" fill="#e23b2e" stroke="#14161f" stroke-width="3" stroke-linejoin="round"/></svg>`;
 const BOLT_SVG = `<svg viewBox="0 0 40 60" xmlns="http://www.w3.org/2000/svg"><path d="M24 2 L6 34 H19 L14 58 L35 22 H22 L28 2 Z" fill="#ffd93b" stroke="#14161f" stroke-width="4" stroke-linejoin="round"/><path d="M23 9 L13 29 H22" fill="none" stroke="#fff6c2" stroke-width="3" stroke-linecap="round"/></svg>`;
+// Henry Hook's stick: wooden shaft, black-taped blade, dark outline and a white sticker edge like the goon art.
+const HOOK_SVG = `<svg viewBox="0 0 80 200" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M60 8 L38 162 Q34 186 8 187" stroke="#fff" stroke-width="20"/><path d="M60 8 L38 162" stroke="#1b1f2a" stroke-width="12"/><path d="M38 162 Q34 186 8 187" stroke="#1b1f2a" stroke-width="16"/><path d="M60 8 L38 162" stroke="#c98a4b" stroke-width="6"/><path d="M59 14 L46 104" stroke="#e8b37a" stroke-width="2"/><path d="M60 9 L56 38" stroke="#2a2d36" stroke-width="7"/><path d="M59 17 L58 22 M58 27 L57 32" stroke="#6a7183" stroke-width="2"/><path d="M38 163 Q34 185 9 186" stroke="#2f3442" stroke-width="9"/><path d="M33 176 L30 186 M24 181 L22 188 M16 183 L15 189" stroke="#8a92a6" stroke-width="2"/></g></svg>`;
 const ROPE_SVG = `<svg viewBox="0 0 120 50" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="25" rx="54" ry="18" fill="none" stroke="#1b1f2a" stroke-width="11"/><ellipse cx="60" cy="25" rx="54" ry="18" fill="none" stroke="#b98a4e" stroke-width="7"/><ellipse cx="60" cy="25" rx="54" ry="18" fill="none" stroke="#7a5528" stroke-width="7" stroke-dasharray="3 6"/><path d="M104 32 q10 6 6 16" fill="none" stroke="#1b1f2a" stroke-width="9" stroke-linecap="round"/><path d="M104 32 q10 6 6 16" fill="none" stroke="#b98a4e" stroke-width="5" stroke-linecap="round"/></svg>`;
 // Goons whose attack pose needs a different size when they stand in the front slot.
 const ATTACK_FIT_FRONT = { frankie: 0.95 };
@@ -2754,6 +2829,7 @@ function startFight() {
   sel = null;
   const r = playRound(run, true);
   saveGame(); // the result is locked in before the animation plays
+  logRun();
   playFight(r);
 }
 
@@ -2893,6 +2969,15 @@ async function playFight(r) {
         const shooterEl = pos.get(ev.actors[0]);
         const throwKind = shooter && ev.actors.length > 1 ? GOON_BY_ID[shooter.id].ability.kind : "";
         abilitySound(shooter ? GOON_BY_ID[shooter.id].ability.kind : "", ev.text);
+        if (throwKind === "hookBackToFront") {
+          // Henry's stick floats over, hooks his man and drags him to the front; the damage shows when he gets there.
+          await hookStick(shooterEl, pos.get(ev.actors[1]), current, pos, layer);
+          diff(prev, current, pos, layer);
+          const tb = prev.find((x) => x.uid === ev.actors[1]), ta = current.find((x) => x.uid === ev.actors[1]);
+          if (!skipping && tb && ta && tb.toughness > ta.toughness) iceChips(pos.get(ev.actors[1]), layer, 3 + tb.toughness - ta.toughness);
+          await sleep(300);
+          break;
+        }
         if (throwKind === "snipeWeakest" || throwKind === "onHurtThrowRandom" || throwKind === "lassoTopPuncher" || throwKind === "stickThrow" || throwKind === "onTeammateDownHitFront") {
           // Ranged shot: he winds up and a puck flies to his target.
           // A goon with a special-move pose uses it here; everyone else uses his punch pose.
@@ -2900,7 +2985,17 @@ async function playFight(r) {
           shooterEl?.classList.add(pose);
           setTimeout(() => shooterEl?.classList.remove(pose), skipping ? 0 : 800 / speed);
           if (!skipping) await shootPuck(shooterEl, pos.get(ev.actors[1]), layer, throwKind === "onHurtThrowRandom" ? "glove" : throwKind === "lassoTopPuncher" ? "lasso" : throwKind === "stickThrow" ? "stick" : throwKind === "onTeammateDownHitFront" ? "rocket" : "puck");
+          // The event carries the numbers after the hit, so the damage shows the moment the object lands.
           diff(prev, current, pos, layer);
+          if (!skipping) {
+            const b = prev.find((x) => x.uid === ev.actors[1]), a = current.find((x) => x.uid === ev.actors[1]);
+            const lost = b && a ? b.toughness - a.toughness : 0;
+            if (lost > 0) {
+              iceChips(pos.get(ev.actors[1]), layer, Math.min(10, 3 + lost));
+              Sfx.play("grunt", { vol: lost >= 3 ? 0.7 : 0.5 });
+              if (lost >= 4) { shake(lost >= 6 ? "big" : "small"); buzz(lost >= 6 ? 45 : 25); }
+            }
+          }
           await sleep(350);
           // Stick's gone: Stu puts up his dukes like a 1930s boxer for the rest of the fight.
           if (throwKind === "stickThrow" && shooterEl) {
@@ -3001,6 +3096,7 @@ async function playFight(r) {
         break;
       }
       case "phase": case "result": case "coach":
+        if (ev.kind === "phase" && /^Overtime/.test(ev.text)) overtimeFx(/^Overtime!/.test(ev.text));
         diff(prev, current, pos, layer);
         await sleep(700);
         break;
@@ -3199,7 +3295,7 @@ function abilitySound(kind, text) {
     case "stickThrow": S("woosh", { vol: 0.9, rate: 0.9 }); S("slap", { vol: 0.8, rate: 0.8, delay: 0.4 }); break;
     case "onHurtThrowRandom": S("woosh", { vol: 0.8 }); break;
     case "lassoTopPuncher": S("lasso", { vol: 0.9 }); break;
-    case "hookBackToFront": S("lasso", { vol: 0.8, rate: 1.25 }); S("glass", { vol: 0.5, delay: 0.3 }); break;
+    case "hookBackToFront": break; // timed to the stick inside hookStick()
     case "damageAllEnemies": S("woosh", { vol: 0.9, rate: 0.8 }); S("punch", { vol: 0.7, delay: 0.2 }); break;
     case "onTeammateDownHitFront": S("woosh", { vol: 0.8, rate: 0.7 }); S("shot", { vol: 0.9, delay: 0.45 }); break;
     case "damageEnemyFront": S("punch", { vol: 0.8, rate: 1.1 }); break;
@@ -3220,6 +3316,19 @@ function abilitySound(kind, text) {
 }
 
 // FIGHT! slams down onto center ice: the bell rings on impact, the rink shakes, then it pops away.
+// Overtime: the first time, a banner and the bell; after that, just a thud as the tired front goons take their share.
+function overtimeFx(first) {
+  if (first && !skipping) {
+    const b = document.createElement("div");
+    b.className = "overtime-banner";
+    b.innerHTML = "OVERTIME!<small>Everyone's worn out. Every exchange hurts more.</small>";
+    (document.querySelector(".fight-hud") || document.body).appendChild(b);
+    setTimeout(() => b.remove(), 1800);
+  }
+  Sfx.play(first ? "bell" : "punch", { vol: first ? 0.8 : 0.5, rate: first ? 0.9 : 0.8 });
+  if (!skipping) { shake(first ? "big" : "small"); buzz(first ? 40 : 20); }
+}
+
 async function fightSlam(layer) {
   if (skipping) { Sfx.play("bell", { vol: 0.8 }); return; }
   const w = document.createElement("img");
@@ -3270,6 +3379,65 @@ function flyingTooth(el, layer) {
   t.style.setProperty("--dx", `${(el.classList.contains("enemy") ? 1 : -1) * (60 + Math.random() * 60)}px`);
   layer.appendChild(t);
   setTimeout(() => t.remove(), 1000);
+}
+
+// Henry Hook: his stick floats over to the enemy's back goon, hooks him from behind (low, by the skates) and drags
+// him to the front while the rest of that line slides back to make room. With one enemy left, it just yanks him.
+async function hookStick(henryEl, targetEl, snap, pos, layer) {
+  if (skipping || !henryEl || !targetEl) { layout(snap, pos); Sfx.play("glass", { vol: 0.4 }); return; }
+  const mine = !henryEl.classList.contains("enemy"); // your Henry reaches right, toward the rivals
+  const stick = document.createElement("div");
+  stick.className = `hook-stick${mine ? "" : " enemy-throw"}`;
+  stick.innerHTML = HOOK_SVG;
+  const at = (el, fx, fy) => [el.offsetLeft + el.offsetWidth * fx, el.offsetTop + el.offsetHeight * fy];
+  const place = ([x, y]) => { stick.style.left = `${x}px`; stick.style.top = `${y}px`; };
+  const hands = () => at(henryEl, mine ? 0.85 : 0.15, 0.55);
+  const behind = mine ? 0.97 : 0.03; // the side of him away from center ice
+  // Right at his skates (the bottom of his picture, above the stat badges), using where the layout is sending him.
+  const skates = () => {
+    const b = targetEl.querySelector(".body");
+    return [parseFloat(targetEl.style.left) + parseFloat(targetEl.style.width) * behind,
+      targetEl.offsetTop + (b ? b.offsetTop + b.offsetHeight * 0.93 : targetEl.offsetHeight * 0.75)];
+  };
+  place(hands());
+  layer.appendChild(stick);
+  henryEl.classList.add("attacking");
+  Sfx.play("woosh", { vol: 0.7, rate: 0.85 });
+  // Float over in a lazy arc to just behind him.
+  const fly = 560 / speed;
+  void stick.offsetWidth;
+  stick.style.transition = `left ${fly}ms ease-in-out, top ${fly}ms cubic-bezier(.3,-0.6,.6,1)`;
+  place(skates());
+  await sleep(560);
+  // Hooked!
+  stick.classList.add("caught");
+  targetEl.classList.add("hooked");
+  Sfx.play("slap", { vol: 0.8, rate: 0.9 });
+  Sfx.play("lasso", { vol: 0.45, rate: 1.4 });
+  await sleep(170);
+  // Drag him to the front: he slides with the stick and his teammates slide back.
+  const drag = 640 / speed;
+  targetEl.style.setProperty("--drag", `${drag}ms`);
+  targetEl.classList.add("dragged");
+  Sfx.play("woosh", { vol: 0.5, rate: 0.7 });
+  layout(snap, pos);
+  stick.style.transition = `left ${drag}ms cubic-bezier(.45,0,.25,1), top ${drag}ms cubic-bezier(.45,0,.25,1)`;
+  place(skates());
+  await sleep(640);
+  targetEl.classList.remove("hooked");
+  Sfx.play("glass", { vol: 0.55 });
+  // The stick snaps back to Henry and he's got it again.
+  stick.classList.remove("caught");
+  const back = 230 / speed;
+  stick.style.transition = `left ${back}ms ease-in, top ${back}ms ease-in, opacity ${back}ms ease-in`;
+  place(hands());
+  stick.style.opacity = "0";
+  setTimeout(() => {
+    stick.remove();
+    targetEl.classList.remove("dragged");
+    targetEl.style.removeProperty("--drag");
+    henryEl.classList.remove("attacking");
+  }, back + 40);
 }
 
 function shootPuck(fromEl, toEl, layer, kind = "puck") {
@@ -3521,6 +3689,8 @@ function showTitle() {
       return;
     }
     clearTimeout(armTimer);
+    // First time: ask who's coaching, for the game log and the leaderboard.
+    if (!settings.name) return askName(() => { closeMenu(); newGame(); }, showTitle);
     closeMenu();
     newGame();
   };
@@ -3528,6 +3698,7 @@ function showTitle() {
     const s = readSave();
     if (!s) return;
     run = s; p = run.player; sel = null; busy = false;
+    ensureRunId();
     closeMenu();
     render();
   };
@@ -3584,6 +3755,27 @@ function showSeason(filter) {
   });
 }
 
+// Who's behind the bench: asked before the first game, changeable in Settings.
+function askName(done, back) {
+  openMenu(`<div class="menu-page">${menuHead("Who's behind the bench?", "", "Back")}
+    <div class="menu-scroll"><form class="name-form" id="name-form" autocomplete="off">
+      <label for="coach-name"><b>Your name, coach</b><small>It goes on the game log, and soon the leaderboard.</small></label>
+      <input id="coach-name" class="name-input" maxlength="20" value="${esc(settings.name || "")}" placeholder="Coach name" enterkeyhint="go">
+      <button class="btn fight" type="submit">Let's go</button>
+    </form></div></div>`);
+  $("m-back").onclick = back;
+  const input = $("coach-name");
+  input.focus(); input.select();
+  $("name-form").onsubmit = (e) => {
+    e.preventDefault();
+    const name = input.value.replace(/\s+/g, " ").trim().slice(0, 20);
+    if (!name) { input.focus(); toast("Type a name first.", true); return; }
+    settings.name = name;
+    saveSettings();
+    done();
+  };
+}
+
 function showSettings() {
   const row = (name, note) => `<div class="set-row"><div><b>${name}</b><small>${note}</small></div><span class="soon">Coming soon</span><span class="switch" aria-hidden="true"></span></div>`;
   const toggle = (id, name, note, on) => `<div class="set-row"><div><b>${name}</b><small>${note}</small></div><button class="switch ${on ? "on" : ""}" id="${id}" role="switch" aria-checked="${on}" aria-label="${name}"></button></div>`;
@@ -3594,10 +3786,12 @@ function showSettings() {
       ${toggle("set-music", "Music", "Your song in the shop and menus, the fight loop on the ice", settings.music)}
       <div class="set-row"><div><b>Song</b><small>Plays in the shop and menus. The 🎵 button on the scoreboard switches it too.</small></div><button class="btn" id="set-song">${esc(songName())} ▸</button></div>
       <div class="set-row"><div><b>Volume</b><small>Everything at once</small></div><input type="range" id="set-vol" min="0" max="100" value="${Math.round(settings.volume * 100)}" aria-label="Volume"></div>
+      <div class="set-row"><div><b>Coach name</b><small>Shows on the game log and the leaderboard</small></div><button class="btn" id="set-name">${esc(settings.name || "Set name")} ✎</button></div>
       ${row("Fight speed", "Default speed for fights")}
     </div></div></div>`);
   $("m-back").onclick = showTitle;
   const flip = (id, key) => { $(id).onclick = () => { settings[key] = !settings[key]; saveSettings(); $(id).classList.toggle("on", settings[key]); $(id).setAttribute("aria-checked", settings[key]); renderMute(); if (key === "music") Sfx.music(settings.music ? "theme" : null); else if (settings[key]) Sfx.play(key === "crowd" ? "roar" : "punch", { vol: 0.6 }); }; };
+  $("set-name").onclick = () => askName(showSettings, showSettings);
   flip("set-sfx", "sfx");
   flip("set-crowd", "crowd");
   flip("set-music", "music");
@@ -3641,6 +3835,8 @@ function newGame() {
   p = run.player;
   sel = null;
   busy = false;
+  startRunId();
+  logRun();
   render();
 }
 
