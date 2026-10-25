@@ -70,6 +70,11 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .cell .k { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #9aa3b5; text-transform: uppercase; }
 .cell .v { font-family: var(--font-display); color: var(--led); font-size: clamp(16px, calc(2.6 * var(--vw)), 24px); line-height: 1.1; font-variant-numeric: tabular-nums; }
 .cell .v.red { color: #ff6b5e; }
+/* Difficulty chip next to the logo */
+.mode-chip { font-family: var(--font-display); font-size: 11px; line-height: 1; padding: 4px 7px; border: 2px solid var(--ink); border-radius: 6px; color: var(--ink); background: #9be39b; white-space: nowrap; }
+.mode-chip.veteran { background: #8fc3ff; }
+.mode-chip.allstar { background: var(--led); }
+.mode-chip:empty { display: none; }
 .champ-flag { font-family: var(--font-display); color: var(--ink); background: var(--led); padding: 2px 8px; border-radius: 6px; font-size: 12px; border: 2px solid var(--ink); }
 
 /* ---------- Stage ---------- */
@@ -192,7 +197,8 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 @keyframes slam-out { from { transform: scale(1) rotate(-4deg); opacity: 1; } to { transform: scale(1.25) rotate(-2deg); opacity: 0; } }
 .portrait .fight-slam { width: 88%; top: 42%; }
 @media (prefers-reduced-motion: reduce) { .fight-slam, .fight-slam.out { animation-duration: .01s; } }
-.chip { position: absolute; z-index: 30; width: 10px; height: 10px; margin: -5px; background: #dff3ff; border: 2px solid #3f7fd0; border-radius: 2px; pointer-events: none; animation: chip .6s cubic-bezier(.2,.7,.4,1) forwards; }
+/* Ice chips off a goon who takes a hit (own class name: the menus' filter and tab buttons are .chip) */
+.ice-chip { position: absolute; z-index: 30; width: 10px; height: 10px; margin: -5px; background: #dff3ff; border: 2px solid #3f7fd0; border-radius: 2px; pointer-events: none; animation: chip .6s cubic-bezier(.2,.7,.4,1) forwards; }
 @keyframes chip { from { transform: translate(0, 0) scale(var(--s)) rotate(0); opacity: 1; } to { transform: translate(var(--dx), calc(var(--dy) + 40px)) scale(var(--s)) rotate(200deg); opacity: 0; } }
 .tooth { position: absolute; z-index: 31; width: 12px; height: 15px; margin: -7px; background: #fffdf2; border: 2px solid var(--ink); border-radius: 40% 40% 30% 30% / 30% 30% 60% 60%; pointer-events: none; animation: tooth .95s cubic-bezier(.3,.6,.6,1) forwards; }
 @keyframes tooth { 0% { transform: translate(0, 0) rotate(0); } 40% { transform: translate(calc(var(--dx) * .5), -60px) rotate(260deg); } 100% { transform: translate(var(--dx), 40px) rotate(560deg); opacity: 0; } }
@@ -561,6 +567,18 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .portrait .lb-head, .portrait .lb-row { grid-template-columns: 40px minmax(0, 1fr) 40px 48px 46px; }
 .portrait .lb-run { grid-template-columns: 64px 1fr 40px; }
 .portrait .lb-lu { grid-column: 1 / -1; }
+/* Mode picker */
+.modes { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.portrait .modes { grid-template-columns: 1fr; }
+.mode-card { position: relative; display: grid; gap: 6px; align-content: start; text-align: left; padding: 18px 18px 20px; font: inherit; color: var(--ink); background: var(--board); border: 3px solid var(--ink); border-radius: 14px; box-shadow: 5px 5px 0 rgba(0,0,0,.45); cursor: pointer; transition: transform .12s, box-shadow .12s; border-top: 12px solid #2e9e5b; }
+.mode-card.veteran { border-top-color: #3f7fd0; }
+.mode-card.allstar { border-top-color: #e0a92a; }
+.mode-card:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 rgba(0,0,0,.45); background: #fff3cf; }
+.mode-card:focus-visible { outline: 3px solid var(--goal-red); outline-offset: 3px; }
+.mc-name { font-family: var(--font-display); font-size: 26px; line-height: 1.1; }
+.mc-tag { justify-self: start; font-weight: 800; font-size: 12px; letter-spacing: .5px; text-transform: uppercase; padding: 1px 8px; border-radius: 999px; background: var(--ink); color: var(--board); }
+.mc-text { color: var(--muted); font-weight: 600; font-size: 14px; }
+.mc-last { position: absolute; top: 10px; right: 12px; font-size: 11px; font-weight: 800; color: var(--goal-red); }
 .name-form { max-width: 520px; margin: 0 auto; display: grid; gap: 14px; justify-items: start; background: var(--board); color: var(--ink); border: 3px solid var(--ink); border-radius: 12px; padding: 18px 20px; box-shadow: 4px 4px 0 rgba(0,0,0,.45); }
 .name-form b { font-family: var(--font-display); font-weight: 400; font-size: 20px; }
 .name-form small { display: block; color: var(--muted); font-weight: 600; }
@@ -593,7 +611,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 
 <div id="app">
   <header class="scoreboard">
-    <div class="sb-left"><button class="home-btn" id="to-menu">Menu</button><button class="home-btn" id="mute" aria-label="Mute sound">🔊</button><button class="home-btn" id="song" aria-label="Change song">🎵</button><div class="logo">Hockey Goons</div></div>
+    <div class="sb-left"><button class="home-btn" id="to-menu">Menu</button><button class="home-btn" id="mute" aria-label="Mute sound">🔊</button><button class="home-btn" id="song" aria-label="Change song">🎵</button><div class="logo">Hockey Goons</div><span class="mode-chip" id="sb-mode"></span></div>
     <div class="board" aria-label="Scoreboard">
       <div class="cell"><span class="k">Round</span><span class="v" id="sb-round">1</span></div>
       <div class="cell"><span class="k">Wins</span><span class="v" id="sb-wins">0/9</span></div>
@@ -1525,6 +1543,8 @@ function coachTiebreak(teamA           , teamB           , say                  
                 
                     
                                                                             
+                                                                                         
+                                                                                                                         
   
 
                                                             
@@ -1940,6 +1960,109 @@ function arrangeLineup(state          )       {
   state.lineup = state.lineup.map((_, i) => ordered[i] ?? null);
 }
 
+// ---------- Smarter computer shopper (Veteran and All-Star modes) ----------
+// Plays more like a person who knows the game: it upgrades by selling weak goons for better ones (tier 4 as soon as it opens),
+// stacks the goons it keeps toward the next level, rerolls more, puts gear where it matters and sets up its lineup on purpose.
+
+// Rough worth of one goon, so the shopper can compare "keep" against "replace".
+function goonValue(id        , copies        , bonusPunch = 0, bonusToughness = 0)         {
+  const def = GOON_BY_ID[id];
+  const extra = copies - 1;
+  const level = copies >= 6 ? 3 : copies >= 3 ? 2 : 1;
+  return def.punch + def.toughness + 2 * extra + bonusPunch + bonusToughness + 4 * def.tier + 5 * (level - 1);
+}
+const valueOf = (g           ) => goonValue(g.id, g.copies, g.bonusPunch, g.bonusToughness);
+
+// Goons whose ability wants a particular spot in the lineup.
+const FRONT_KINDS = new Set(["capDamage", "reduceDamage", "toughnessPerTeammateBehind", "onHurtGainPunch", "reviveOnce", "onHurtHitBack", "onHurtThrowRandom", "buffBehindPunch"]);
+const BEHIND_FRONT_KINDS = new Set(["bodyguard", "sparkAhead"]);
+const BACK_KINDS = new Set(["healFront", "onTeammateDownHitFront", "bonusPucks", "buffFrontToughness", "saveTeammate", "lastStandingGainPunch", "snipeWeakest", "stickThrow", "hookBackToFront"]);
+const SMART_GEAR = ["drink", "foil", "salts", "birdcage", "tape", "ice", "peptalk", "chirp", "mouthguard"];
+
+function aiShopSmart(state          , opts                        = {})       {
+  const maxRolls = opts.maxRolls ?? 4;
+  let rolls = 0;
+  if (state.coachOffered) buyCoach(state);
+
+  for (let guard = 0; guard < 40 && state.pucks > 0; guard++) {
+                                                     
+    const moves         = [];
+    const owned = state.lineup.map((g, i) => ({ g, i })).filter((x)                                   => x.g !== null);
+    const empty = state.lineup.findIndex((g) => g === null);
+    const weakest = owned.length ? owned.reduce((a, b) => (valueOf(b.g) < valueOf(a.g) ? b : a)) : null;
+
+    if (state.pucks >= GOON_COST) {
+      state.goonOffers.forEach((o, oi) => {
+        const mine = owned.find((x) => x.g.id === o.id && x.g.copies < MAX_COPIES);
+        if (mine) {
+          // Stacking: worth the stats, and a lot more when it reaches the next level.
+          const after = goonValue(o.id, mine.g.copies + 1, mine.g.bonusPunch, mine.g.bonusToughness);
+          moves.push({ gain: after - valueOf(mine.g) + 1, run: () => buyGoon(state, oi + 1, mine.i + 1).ok });
+          return;
+        }
+        const v = goonValue(o.id, 1);
+        if (empty >= 0) {
+          moves.push({ gain: v, run: () => buyGoon(state, oi + 1, empty + 1).ok });
+        } else if (weakest) {
+          // Lineup full: sell the weakest goon if the new one is clearly better.
+          const gain = v - valueOf(weakest.g) - 2;
+          if (gain > 0) moves.push({ gain, run: () => { const slot = weakest.i + 1; sell(state, slot); return buyGoon(state, oi + 1, slot).ok; } });
+        }
+      });
+    }
+
+    if (state.pucks >= 3 && state.gearOffers.length && owned.length) {
+      // Gear goes on the goon it helps most: the best goon for permanent stats and Salts, the front goon for Foil,
+      // a back-line ability goon for the Birdcage (it blocks the cheap shots aimed at him).
+      const best = owned.reduce((a, b) => (valueOf(b.g) > valueOf(a.g) ? b : a));
+      state.gearOffers.forEach((o, oi) => {
+        const rank = SMART_GEAR.indexOf(o.id);
+        if (rank < 0) return; // never rents out its own goons
+        const gear = GEAR_BY_ID[o.id];
+        let target = best;
+        if (o.id === "foil") target = owned[0];
+        if (o.id === "birdcage") target = owned.find((x) => BACK_KINDS.has(GOON_BY_ID[x.g.id].ability.kind) && !x.g.worn) ?? best;
+        if (gear.kind === "worn" && target.g.worn) {
+          const bare = owned.find((x) => !x.g.worn);
+          if (!bare) return;
+          target = bare;
+        }
+        if (o.id === "mouthguard") target = owned[0];
+        const gain = 6 - rank * 0.6;
+        moves.push({ gain, run: () => buyGear(state, oi + 1, gear.target === "goon" ? target.i + 1 : undefined).ok });
+      });
+    }
+
+    moves.sort((a, b) => b.gain - a.gain);
+    const best = moves.find((m) => m.gain > 0);
+    // Reroll when nothing on offer is worth much and there's money left to use what comes up.
+    if ((!best || best.gain < 4) && rolls < maxRolls && state.pucks >= 4) { roll(state); rolls++; continue; }
+    if (!best || !best.run()) break;
+  }
+
+  arrangeLineupSmart(state);
+}
+
+// Front: the toughest goon built to take hits. Right behind him: a bodyguard or a spark plug.
+// Then the hitters (hardest punch first) and the back line: healers, rocket men, snipers and savers.
+function arrangeLineupSmart(state          )       {
+  const goons = state.lineup.filter((g)                 => g !== null);
+  if (goons.length < 2) { state.lineup = state.lineup.map((_, i) => goons[i] ?? null); return; }
+  const kind = (g           ) => GOON_BY_ID[g.id].ability.kind;
+  const tanky = (g           ) => goonStats(g).toughness * 1.2 + goonStats(g).punch + (FRONT_KINDS.has(kind(g)) ? 4 : 0);
+  const frontPool = goons.filter((g) => !BEHIND_FRONT_KINDS.has(kind(g)) && !BACK_KINDS.has(kind(g)));
+  const front = (frontPool.length ? frontPool : goons).reduce((a, b) => (tanky(b) > tanky(a) ? b : a));
+  const rest = goons.filter((g) => g !== front);
+  const second = rest.find((g) => kind(g) === "bodyguard") ?? rest.find((g) => kind(g) === "sparkAhead");
+  const others = rest.filter((g) => g !== second);
+  const back = others.filter((g) => BACK_KINDS.has(kind(g)));
+  const hitters = others.filter((g) => !BACK_KINDS.has(kind(g))).sort((a, b) => goonStats(b).punch - goonStats(a).punch);
+  // A last-stand goalie wants to be the very last one; healers and rocket men just behind the hitters.
+  back.sort((a, b) => (kind(a) === "lastStandingGainPunch" ? 1 : 0) - (kind(b) === "lastStandingGainPunch" ? 1 : 0));
+  const ordered = [front, ...(second ? [second] : []), ...hitters, ...back];
+  state.lineup = state.lineup.map((_, i) => ordered[i] ?? null);
+}
+
 // ---- run.ts ----
 // A full run: the player's team against a different computer team every round.
 // Each opponent is built by a computer player that has shopped through every round so far,
@@ -1952,12 +2075,25 @@ function arrangeLineup(state          )       {
 
                                                      
 
-function startRun(seed        , playerName = "You")      {
-  return { player: newRun(playerName, seed), seed };
+// Difficulty. Rookie: the original computer teams. Veteran: smarter computer teams (and player ghosts, in the game).
+// All-Star: smart computer teams with extra pucks every round (and ghosts from winning teams, in the game).
+                                                    
+const MODES                                                                     = {
+  rookie: { name: "Rookie", smart: false, bonusPucks: 0 },
+  veteran: { name: "Veteran", smart: true, bonusPucks: 0 },
+  allstar: { name: "All-Star", smart: true, bonusPucks: 1 },
+};
+const modeOf = (state          )       => (state.mode && MODES[state.mode] ? state.mode : "rookie");
+
+function startRun(seed        , playerName = "You", mode       = "rookie")      {
+  const player = newRun(playerName, seed);
+  player.mode = mode;
+  return { player, seed };
 }
 
-// A computer team that has shopped for `rounds` rounds.
-function buildOpponent(seed        , rounds        , name        )           {
+// A computer team that has shopped for `rounds` rounds, the way this mode's computer shops.
+function buildOpponent(seed        , rounds        , name        , mode       = "rookie")           {
+  const m = MODES[mode];
   const opp = newRun(name, seed);
   for (let r = 1; r <= rounds; r++) {
     if (r > 1) {
@@ -1968,23 +2104,71 @@ function buildOpponent(seed        , rounds        , name        )           {
       opp.pepTalk = false;
       opp.chirp = false;
     }
-    aiShop(opp);
+    opp.pucks += m.bonusPucks;
+    if (m.smart) aiShopSmart(opp); else aiShop(opp);
     endShopPhase(opp);
   }
   return opp;
 }
 
+// ---------- Player ghosts ----------
+// A ghost is another player's team exactly as it went into a fight at some round: goons, levels, buffs, worn gear
+// and that fight's team items. In Veteran and All-Star the game fetches one for your round during the shop.
+                     
+               
+                                                                                                                                     
+                    
+                  
+  
+
+// The player's team as it goes into this fight, ready to be saved as a ghost for other players.
+function ghostOf(state          , name        )        {
+  return {
+    name,
+    lineup: state.lineup.map((g) => (g ? { id: g.id, copies: g.copies, bonusPunch: g.bonusPunch, bonusToughness: g.bonusToughness, ...(g.worn ? { worn: g.worn } : {}), ...(g.mouthguard ? { mouthguard: true } : {}) } : null)),
+    ...(state.pepTalk ? { pepTalk: true } : {}),
+    ...(state.chirp ? { chirp: true } : {}),
+  };
+}
+
+// Turn a ghost back into a team to fight. Returns null if it doesn't fit this version of the game
+// (a goon or item that no longer exists, impossible numbers), so the computer team steps in instead.
+function ghostTeam(ghost         )                  {
+  const g = ghost         ;
+  if (!g || typeof g !== "object" || !Array.isArray(g.lineup) || g.lineup.length > LINEUP_SLOTS) return null;
+  const lineup                       = [];
+  for (const u of g.lineup) {
+    if (u === null) { lineup.push(null); continue; }
+    const def = GOON_BY_ID[u?.id];
+    const ok = def && GOONS.includes(def) && Number.isInteger(u.copies) && u.copies >= 1 && u.copies <= MAX_COPIES
+      && Number.isInteger(u.bonusPunch) && Number.isInteger(u.bonusToughness) && u.bonusPunch >= 0 && u.bonusToughness >= 0
+      && u.bonusPunch <= 99 && u.bonusToughness <= 99 && (!u.worn || GEAR_BY_ID[u.worn]?.kind === "worn");
+    if (!ok) return null;
+    lineup.push({ id: u.id, copies: u.copies, bonusPunch: u.bonusPunch, bonusToughness: u.bonusToughness, mouthguard: !!u.mouthguard, ...(u.worn ? { worn: u.worn } : {}) });
+  }
+  while (lineup.length < LINEUP_SLOTS) lineup.push(null);
+  if (!lineup.some(Boolean)) return null;
+  const team = newRun(String(g.name || "Ghost").slice(0, 24), 1);
+  team.lineup = lineup;
+  team.pepTalk = !!g.pepTalk;
+  team.chirp = !!g.chirp;
+  return team;
+}
+
 // Ends the player's shop phase, builds this round's opponent, then fights.
-// The championship opponent gets 2 extra rounds of shopping.
-function playRound(run     , verbose         )                                                         {
+// A ghost (another player's team) takes the rival's place when one was found for this round.
+// The championship opponent is always a computer team with 2 extra rounds of shopping.
+function playRound(run     , verbose         , ghost          )                                                                                          {
   const notes = endShopPhase(run.player);
   const p = run.player;
+  const snapshot = ghostOf(p, p.name);
+  const mode = modeOf(p);
   const opponentSeed = (run.seed * 31 + p.round * 7919 + 17) >>> 0;
-  const opponent = p.championship
-    ? buildOpponent(opponentSeed, p.round + 2, "Champions")
-    : buildOpponent(opponentSeed, p.round, "Rivals");
+  const fromGhost = !p.championship && ghost ? ghostTeam(ghost) : null;
+  const opponent = fromGhost
+    ?? (p.championship ? buildOpponent(opponentSeed, p.round + 2, "Champions", mode) : buildOpponent(opponentSeed, p.round, "Rivals", mode));
   const outcome = fightRound(p, toTeam(opponent), verbose);
-  return { ...outcome, notes, opponent };
+  return { ...outcome, notes, opponent, snapshot, ghost: !!fromGhost };
 }
 
 // ---------- Saving ----------
@@ -2010,7 +2194,7 @@ function loadRun(text               )             {
   }
 }
 
-return { GOON_BY_ID, GEAR_BY_ID, GOON_COST, GEAR_COST, COACH_COST, ROLL_COST, WINS_TO_CHAMPIONSHIP, LOSSES_TO_END, LINEUP_SLOTS, MAX_COACHES, startRun, playRound, buyGoon, buyGear, buyCoach, sell, move, roll, freeze, goonStats, levelForCopies, saveRun, loadRun, GOONS };
+return { GOON_BY_ID, GEAR_BY_ID, GOON_COST, GEAR_COST, COACH_COST, ROLL_COST, WINS_TO_CHAMPIONSHIP, LOSSES_TO_END, LINEUP_SLOTS, MAX_COACHES, startRun, playRound, buyGoon, buyGear, buyCoach, sell, move, roll, freeze, goonStats, levelForCopies, saveRun, loadRun, GOONS, MODES, modeOf };
 })();
 </script>
 <script>
@@ -2064,9 +2248,42 @@ function logRun() {
     fetch(`${GAME_LOG.url}/rest/v1/rpc/log_run`, {
       method: "POST", keepalive: true,
       headers: { apikey: GAME_LOG.key, "Content-Type": "application/json" },
-      body: JSON.stringify({ p_id: runId, p_device: settings.device, p_player: settings.name || "Anonymous", p_round: p.round, p_wins: p.wins, p_losses: p.losses, p_status: runStatus(), p_lineup: lineup, p_site: location.hostname || "file" }),
+      body: JSON.stringify({ p_id: runId, p_device: settings.device, p_player: settings.name || "Anonymous", p_round: p.round, p_wins: p.wins, p_losses: p.losses, p_status: runStatus(), p_lineup: lineup, p_site: location.hostname || "file", p_mode: modeOf(p) }),
+    }).then((res) => {
+      // Until the database has the modes update, log the run the old way.
+      if (res.status === 404) fetch(`${GAME_LOG.url}/rest/v1/rpc/log_run`, { method: "POST", keepalive: true, headers: { apikey: GAME_LOG.key, "Content-Type": "application/json" },
+        body: JSON.stringify({ p_id: runId, p_device: settings.device, p_player: settings.name || "Anonymous", p_round: p.round, p_wins: p.wins, p_losses: p.losses, p_status: runStatus(), p_lineup: lineup, p_site: location.hostname || "file" }) }).catch(() => {});
     }).catch(() => {});
   } catch {}
+}
+
+// ---------- Player ghosts ----------
+// Every fight saves your team as a ghost. In Veteran and All-Star, the shop quietly fetches a ghost for your round
+// (another player's team from the same round); if none fits, the mode's computer team plays instead.
+function submitGhost(snapshot, round, wins, losses) {
+  if (!runId) ensureRunId();
+  try {
+    fetch(`${GAME_LOG.url}/rest/v1/rpc/submit_ghost`, {
+      method: "POST", keepalive: true,
+      headers: { apikey: GAME_LOG.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_run: runId, p_device: settings.device, p_player: settings.name || "Anonymous", p_mode: modeOf(p), p_round: round, p_wins: wins, p_losses: losses,
+        p_team: { lineup: snapshot.lineup, ...(snapshot.pepTalk ? { pepTalk: true } : {}), ...(snapshot.chirp ? { chirp: true } : {}) } }),
+    }).catch(() => {});
+  } catch {}
+}
+let ghostAsked = 0;
+function prefetchGhost() {
+  if (!run || !p || p.over || p.championship || modeOf(p) === "rookie") return;
+  const round = p.round;
+  if ((p.ghost && p.ghost.round === round) || ghostAsked === round) return;
+  ghostAsked = round;
+  const asking = run;
+  callLog("get_ghost", { p_round: round, p_mode: modeOf(p), p_device: settings.device }).then((rows) => {
+    if (run !== asking || p.round !== round || busy) return;
+    const g = rows && rows[0];
+    p.ghost = g ? { round, team: { ...g.team, name: `👻 ${g.name}` }, record: `${g.wins}–${g.losses}` } : { round, team: null };
+    saveGame();
+  }).catch(() => { if (ghostAsked === round) ghostAsked = 0; });
 }
 const Sfx = (() => {
   let ctx = null, master = null, bedGain = null, bed = null, bedName = "", bedGroup = "";
@@ -2209,7 +2426,7 @@ for (const [fn, snd] of Object.entries({ buyGoon: "cash", buyGear: "cash", sell:
 }
 
 const { GOON_BY_ID, GEAR_BY_ID, GOON_COST, GEAR_COST, COACH_COST, ROLL_COST, WINS_TO_CHAMPIONSHIP, LOSSES_TO_END, LINEUP_SLOTS, MAX_COACHES,
-  startRun, playRound, buyGoon, buyGear, buyCoach, sell, move, roll, freeze, goonStats, levelForCopies, saveRun, loadRun, GOONS } = window.HG;
+  startRun, playRound, buyGoon, buyGear, buyCoach, sell, move, roll, freeze, goonStats, levelForCopies, saveRun, loadRun, GOONS, MODES, modeOf } = window.HG;
 
 const $ = (id) => document.getElementById(id);
 
@@ -2437,6 +2654,9 @@ function act(result) {
 
 // ---------- Scoreboard ----------
 function renderScoreboard() {
+  const mode = modeOf(p);
+  $("sb-mode").textContent = MODES[mode].name;
+  $("sb-mode").className = `mode-chip ${mode}`;
   $("sb-round").textContent = p.round;
   $("sb-wins").textContent = `${p.wins}/${WINS_TO_CHAMPIONSHIP}`;
   $("sb-losses").textContent = `${p.losses}/${LOSSES_TO_END}`;
@@ -2462,6 +2682,7 @@ function levelBlock(copies) {
 // ---------- Shop screen ----------
 function render() {
   hideTip();
+  prefetchGhost();
   saveGame();
   renderScoreboard();
   renderLineup();
@@ -2871,9 +3092,13 @@ function startFight() {
   Sfx.play("horn", { vol: 0.7 });
   Sfx.sting();
   sel = null;
-  const r = playRound(run, true);
+  const round = p.round, wins = p.wins, losses = p.losses;
+  const ghost = p.ghost && p.ghost.round === round ? p.ghost.team : undefined;
+  const r = playRound(run, true, ghost);
+  delete p.ghost;
   saveGame(); // the result is locked in before the animation plays
   logRun();
+  submitGhost(r.snapshot, round, wins, losses);
   playFight(r);
 }
 
@@ -3405,7 +3630,7 @@ function iceChips(el, layer, n) {
   const x = el.offsetLeft + el.offsetWidth / 2, y = el.offsetTop + el.offsetHeight * 0.55;
   for (let i = 0; i < n; i++) {
     const c = document.createElement("i");
-    c.className = "chip";
+    c.className = "ice-chip";
     const ang = (Math.random() * 160 - 170) * Math.PI / 180, dist = 30 + Math.random() * 55;
     c.style.left = `${x}px`; c.style.top = `${y}px`;
     c.style.setProperty("--dx", `${Math.cos(ang) * dist}px`); c.style.setProperty("--dy", `${Math.sin(ang) * dist}px`);
@@ -3712,7 +3937,7 @@ function showTitle() {
   const saved = readSave();
   const left = hasAttack("hammer") ? ART["hammer-attack"] : ART.hammer;
   const right = hasAttack("frankie") ? ART["frankie-attack"] : ART.frankie;
-  const record = saved ? `Round ${saved.player.round} · ${saved.player.wins}W ${saved.player.losses}L` : "No game saved";
+  const record = saved ? `${MODES[modeOf(saved.player)].name} · Round ${saved.player.round} · ${saved.player.wins}W ${saved.player.losses}L` : "No game saved";
   openMenu(`<div class="title-screen">
     <h1 class="game-logo" aria-label="Hockey Goons"><img class="emblem" src="${ART.emblem}" alt=""><span>Hockey</span><span>Goons</span></h1>
     <nav class="menu-buttons" aria-label="Main menu">
@@ -3735,9 +3960,8 @@ function showTitle() {
     }
     clearTimeout(armTimer);
     // First time: ask who's coaching, for the game log and the leaderboard.
-    if (!settings.name) return askName(() => { closeMenu(); newGame(); }, showTitle);
-    closeMenu();
-    newGame();
+    if (!settings.name) return askName(() => askMode(), showTitle);
+    askMode();
   };
   $("m-continue").onclick = () => {
     const s = readSave();
@@ -3748,7 +3972,7 @@ function showTitle() {
     render();
   };
   $("m-goons").onclick = showPacks;
-  $("m-leaders").onclick = showLeaderboard;
+  $("m-leaders").onclick = () => showLeaderboard();
   $("m-settings").onclick = showSettings;
   $("m-new").focus();
 }
@@ -3799,6 +4023,25 @@ function showSeason(filter) {
   menu.querySelectorAll(".chip").forEach((b) => {
     b.onclick = () => showSeason(b.dataset.f === "all" ? "all" : b.dataset.f === "goalie" ? "goalie" : Number(b.dataset.f));
   });
+}
+
+// Pick the difficulty for a new run. The last choice is remembered.
+const MODE_INFO = {
+  rookie: { tag: "Easy", text: "The classic game. Computer teams shop simply and rarely bring the heavy hitters." },
+  veteran: { tag: "Harder", text: "Smarter computer teams that sell, upgrade and use tier 4. Plus ghosts: real teams from other players at your round." },
+  allstar: { tag: "Hardest", text: "Sharp computer teams with an extra puck every round, and ghosts of players whose runs went deep." },
+};
+function askMode() {
+  const pick = settings.mode || "rookie";
+  openMenu(`<div class="menu-page">${menuHead("Pick your league", "", "Back")}
+    <div class="menu-scroll"><div class="modes">
+      ${Object.keys(MODE_INFO).map((m) => `<button class="mode-card ${m}${m === pick ? " last" : ""}" data-mode="${m}"><span class="mc-name">${esc(MODES[m].name)}</span><span class="mc-tag">${MODE_INFO[m].tag}</span><span class="mc-text">${esc(MODE_INFO[m].text)}</span>${m === pick ? '<span class="mc-last">Last played</span>' : ""}</button>`).join("")}
+    </div></div></div>`);
+  $("m-back").onclick = showTitle;
+  menu.querySelectorAll(".mode-card").forEach((b) => {
+    b.onclick = () => { settings.mode = b.dataset.mode; saveSettings(); closeMenu(); newGame(b.dataset.mode); };
+  });
+  menu.querySelector(".mode-card.last")?.focus();
 }
 
 // Who's behind the bench: asked before the first game, changeable in Settings.
@@ -3856,6 +4099,7 @@ function coachStats(r, runs) {
     ${r.best_lineup ? `<p class="lb-line"><b>Best lineup:</b> ${esc(r.best_lineup)}</p>` : ""}
     <div class="lb-runs"><h4>Recent runs</h4>${runs === null ? "<span class='lb-lu'>Loading…</span>" : runs === false ? "<span class='lb-lu'>Couldn't load recent runs.</span>" : runs.map(runRow).join("")}</div>`;
 }
+let lbMode = "rookie";
 async function toggleCoach(btn, r) {
   const d = btn.nextElementSibling;
   const open = btn.getAttribute("aria-expanded") === "true";
@@ -3865,17 +4109,22 @@ async function toggleCoach(btn, r) {
   d.dataset.loaded = "1";
   d.innerHTML = coachStats(r, null);
   let runs = false;
-  try { runs = await callLog("get_player_runs", { p_player: r.player, p_limit: 10 }); } catch {}
+  try { runs = await callLog("get_player_runs", { p_player: r.player, p_limit: 10, p_mode: lbMode }); } catch {}
   d.innerHTML = coachStats(r, runs);
 }
-function showLeaderboard() {
-  openMenu(`<div class="menu-page">${menuHead("Leaderboard", "Championships first, then best run", "Main menu")}
+function showLeaderboard(mode = settings.mode || "rookie") {
+  lbMode = MODES[mode] ? mode : "rookie";
+  const tabs = `<div class="chips" role="group" aria-label="League">${Object.keys(MODES).map((m) => `<button class="chip" data-mode="${m}" aria-pressed="${m === lbMode}">${esc(MODES[m].name)}</button>`).join("")}</div>`;
+  openMenu(`<div class="menu-page">${menuHead("Leaderboard", "Championships first, then best run", "Main menu", null, tabs)}
     <div class="menu-scroll"><div class="lb" id="lb"><p class="lb-note">Loading the standings…</p></div></div></div>`);
   $("m-back").onclick = showTitle;
-  callLog("get_leaderboard", { p_limit: 50 }).then((rows) => {
+  menu.querySelectorAll(".chips .chip").forEach((b) => { b.onclick = () => showLeaderboard(b.dataset.mode); });
+  const showing = lbMode;
+  callLog("get_leaderboard", { p_limit: 50, p_mode: lbMode }).then((rows) => {
+    if (lbMode !== showing) return; // they switched tabs
     const box = $("lb");
     if (!box) return; // they already left the screen
-    if (!rows.length) { box.innerHTML = `<p class="lb-note">Nobody's on the board yet. Finish a fight to get on it!</p>`; return; }
+    if (!rows.length) { box.innerHTML = `<p class="lb-note">Nobody's on the ${esc(MODES[lbMode].name)} board yet. Finish a fight to get on it!</p>`; return; }
     const medal = (n) => (n <= 3 ? ["🥇", "🥈", "🥉"][n - 1] : n);
     box.innerHTML = `<div class="lb-head"><span>#</span><span>Coach</span><span title="Championships">🏆</span><span title="Most wins in one run">Best</span><span class="lb-wide">W–L</span><span class="lb-wide">Win %</span><span>Runs</span></div>` +
       rows.map((r, i) => {
@@ -3887,7 +4136,7 @@ function showLeaderboard() {
     const box = $("lb");
     if (!box) return;
     box.innerHTML = `<p class="lb-note">Couldn't reach the leaderboard right now. Check your connection and try again.</p><button class="btn" id="lb-retry">Try again</button>`;
-    $("lb-retry").onclick = showLeaderboard;
+    $("lb-retry").onclick = () => showLeaderboard(lbMode);
   });
 }
 
@@ -3945,8 +4194,8 @@ $("song").title = `Song: ${songName()} (click to change)`;
 
 $("to-menu").onclick = () => { if (!busy) { saveGame(); showTitle(); } };
 
-function newGame() {
-  run = startRun(Math.floor(Math.random() * 1e9));
+function newGame(mode = settings.mode || "rookie") {
+  run = startRun(Math.floor(Math.random() * 1e9), "You", MODES[mode] ? mode : "rookie");
   p = run.player;
   sel = null;
   busy = false;
