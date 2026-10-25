@@ -842,7 +842,7 @@ const GOONS            = [
     abilityText: "Trophy hunter: every time he knocks someone out, he gains +1/+1 for the rest of the run, not just the fight." },
   { id: "igor", name: "Iron Jaw Igor", tier: 4, punch: 4, toughness: 9,
     ability: { kind: "capDamage", amount: 3 },
-    abilityText: "Iron jaw: no single hit can deal him more than 3 damage." },
+    abilityText: "Iron jaw: no single hit can deal him more than 3 damage, and Doc can only patch him up for 2 at a time." },
 ];
 
 // Goons that only appear during a fight (never in the shop or the card packs).
@@ -1445,7 +1445,10 @@ function runFight(teamA           , teamB           , seed        , verbose = fa
         const t = front(side);
         if (!t) continue;
         t.peak = Math.max(t.peak, t.toughness);
-        const n = Math.min(f.def.ability.amount * f.level, t.peak - t.toughness);
+        // Iron Jaw Igor is hard to hurt and just as hard to patch: a heal on him is at most 1 less than his damage cap,
+        // so even a high-level Doc can't out-heal every hit he takes.
+        const patchLimit = t.def.ability.kind === "capDamage" ? t.def.ability.amount - 1 : Infinity;
+        const n = Math.min(f.def.ability.amount * f.level, t.peak - t.toughness, patchLimit);
         if (n <= 0) continue;
         t.toughness += n;
         say(`  ${label(f)} patches up ${t === f ? "himself" : t.def.name}: +${n} toughness (${stats(t)})`, "buff", [f, t]);
