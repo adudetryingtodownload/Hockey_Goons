@@ -450,6 +450,10 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .menu-buttons .mb:disabled { opacity: .5; cursor: default; }
 .mb small { font-family: var(--font-body); font-weight: 800; font-size: 12px; color: var(--muted); }
 .mb.primary small { color: #ffe1dc; text-shadow: none; }
+/* Two columns so five buttons fit in four rows: Goons and Settings share a row. */
+.menu-buttons { grid-template-columns: 1fr 1fr; }
+.menu-buttons .mb { grid-column: 1 / -1; }
+.menu-buttons .mb.half { grid-column: auto; text-align: center; }
 .title-goon { position: absolute; bottom: 2%; width: clamp(120px, calc(24 * var(--vw)), 300px); pointer-events: none; filter: drop-shadow(0 8px 6px rgba(0,0,0,.45)); z-index: 1; }
 .title-goon.left { left: 3%; animation: bob 2.4s ease-in-out infinite; }
 .title-goon.right { right: 3%; transform: scaleX(-1); animation: bob-flip 2.4s ease-in-out infinite .6s; }
@@ -519,6 +523,44 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .switch { width: 52px; height: 30px; border-radius: 999px; border: 3px solid var(--ink); background: #c7ced8; position: relative; flex: none; padding: 0; }
 .switch.on { background: var(--good); }
 .switch.on::after { left: auto; right: 2px; }
+/* Leaderboard */
+.lb { max-width: 780px; margin: 0 auto; display: grid; gap: 8px; }
+.lb-note { margin: 24px 0 8px; text-align: center; font-weight: 800; font-size: 16px; color: #e6ebf2; text-shadow: 1px 1px 0 var(--ink); }
+.lb > .btn { justify-self: center; }
+.lb-head, .lb-row { display: grid; grid-template-columns: 46px minmax(0, 1fr) 46px 54px 76px 62px 50px; align-items: center; gap: 6px; text-align: center; }
+.lb-head { padding: 0 17px; font-family: var(--font-display); font-size: 12px; color: var(--led); text-shadow: 2px 2px 0 var(--ink); }
+.lb-head span:nth-child(2), .lb-name { text-align: left; }
+.lb-item { background: var(--board); color: var(--ink); border: 3px solid var(--ink); border-radius: 12px; box-shadow: 4px 4px 0 rgba(0,0,0,.45); overflow: hidden; animation: lb-in .3s ease-out both; }
+.lb-item.me { background: #fff3cf; }
+@keyframes lb-in { from { opacity: 0; translate: 0 8px; } }
+.lb-row { width: 100%; padding: 10px 14px; border: 0; background: none; font: inherit; color: inherit; font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.lb-row:hover { background: rgba(20,22,31,.05); }
+.lb-row:focus-visible { outline: 3px solid var(--goal-red); outline-offset: -3px; }
+.lb-place { font-family: var(--font-display); font-weight: 400; font-size: 18px; }
+.lb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-display); font-weight: 400; font-size: 17px; }
+.lb-name .you { margin-left: 6px; padding: 0 5px; border-radius: 5px; background: var(--goal-red); color: #fff; font-family: var(--font-body); font-weight: 800; font-size: 11px; vertical-align: 2px; }
+.lb-name .chev { display: inline-block; margin-left: 6px; color: var(--muted); font-size: 12px; transition: rotate .2s; }
+.lb-row[aria-expanded="true"] .chev { rotate: 90deg; }
+.lb-detail { display: grid; gap: 10px; padding: 12px 14px 14px; border-top: 3px dashed rgba(20,22,31,.22); }
+.lb-detail[hidden] { display: none; }
+.lb-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+.lb-tile { padding: 6px 8px; text-align: center; background: var(--board-2); border: 2px solid var(--ink); border-radius: 10px; }
+.lb-tile b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 20px; line-height: 1.2; }
+.lb-tile small { color: var(--muted); font-weight: 700; font-size: 11px; }
+.lb-line { margin: 0; font-size: 14px; }
+.lb-line small { color: var(--muted); font-weight: 600; }
+.lb-runs { display: grid; gap: 2px; font-size: 13px; }
+.lb-runs h4 { margin: 0 0 2px; font-family: var(--font-display); font-weight: 400; font-size: 14px; }
+.lb-run { display: grid; grid-template-columns: 72px 160px 44px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 4px 0; border-top: 1px solid rgba(20,22,31,.12); }
+.lb-res { font-weight: 800; }
+.lb-res.champion { color: #a8730a; }
+.lb-res.out, .lb-res.lost-final { color: var(--goal-red); }
+.lb-wl { font-weight: 800; font-variant-numeric: tabular-nums; }
+.lb-lu, .lb-when { color: var(--muted); }
+.portrait .lb-wide { display: none; }
+.portrait .lb-head, .portrait .lb-row { grid-template-columns: 40px minmax(0, 1fr) 40px 48px 46px; }
+.portrait .lb-run { grid-template-columns: 64px 1fr 40px; }
+.portrait .lb-lu { grid-column: 1 / -1; }
 .name-form { max-width: 520px; margin: 0 auto; display: grid; gap: 14px; justify-items: start; background: var(--board); color: var(--ink); border: 3px solid var(--ink); border-radius: 12px; padding: 18px 20px; box-shadow: 4px 4px 0 rgba(0,0,0,.45); }
 .name-form b { font-family: var(--font-display); font-weight: 400; font-size: 20px; }
 .name-form small { display: block; color: var(--muted); font-weight: 600; }
@@ -3674,8 +3716,9 @@ function showTitle() {
     <nav class="menu-buttons" aria-label="Main menu">
       <button class="mb primary" id="m-new">New game</button>
       <button class="mb" id="m-continue" ${saved ? "" : "disabled"}>Continue <small>${esc(record)}</small></button>
-      <button class="mb" id="m-goons">Goons</button>
-      <button class="mb" id="m-settings">Settings</button>
+      <button class="mb" id="m-leaders">Leaderboard</button>
+      <button class="mb half" id="m-goons">Goons</button>
+      <button class="mb half" id="m-settings">Settings</button>
     </nav>
     <img class="title-goon left" src="${left}" alt="">
     <img class="title-goon right" src="${right}" alt="">
@@ -3703,6 +3746,7 @@ function showTitle() {
     render();
   };
   $("m-goons").onclick = showPacks;
+  $("m-leaders").onclick = showLeaderboard;
   $("m-settings").onclick = showSettings;
   $("m-new").focus();
 }
@@ -3774,6 +3818,75 @@ function askName(done, back) {
     saveSettings();
     done();
   };
+}
+
+// ---------- Leaderboard ----------
+// Standings come from the game log (Supabase): championships first, then the best single run, then total wins.
+// Tap a coach to see his stats, favorite goon and recent runs.
+async function callLog(fn, args) {
+  const res = await fetch(`${GAME_LOG.url}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: GAME_LOG.key, "Content-Type": "application/json" }, body: JSON.stringify(args) });
+  if (!res.ok) throw new Error(`${fn}: ${res.status}`);
+  return res.json();
+}
+const sameName = (a, b) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+function ago(t) {
+  const s = (Date.now() - new Date(t).getTime()) / 1000;
+  if (s < 90) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  if (s < 86400 * 7) return `${Math.round(s / 86400)}d ago`;
+  return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+const RUN_RESULT = { champion: "🏆 Champions", "lost final": "Lost the final", out: "Out", playing: "In progress" };
+function favoriteGoon(runs) {
+  const n = new Map();
+  for (const r of runs) for (const g of new Set((r.lineup || "").split(", ").map((x) => x.replace(/ L\d$/, "")).filter(Boolean))) n.set(g, (n.get(g) || 0) + 1);
+  let best = null;
+  for (const [name, count] of n) if (!best || count > best.n) best = { name, n: count };
+  return best;
+}
+function coachStats(r, runs) {
+  const tile = (v, label) => `<div class="lb-tile"><b>${v}</b><small>${label}</small></div>`;
+  const fav = runs && runs.length ? favoriteGoon(runs) : null;
+  const runRow = (x) => `<div class="lb-run"><span class="lb-when">${ago(x.updated_at)}</span><span class="lb-res ${x.status.replace(" ", "-")}">${RUN_RESULT[x.status] ?? esc(x.status)}${x.status === "playing" ? ` · round ${x.round}` : ""}</span><span class="lb-wl">${x.wins}–${x.losses}</span><span class="lb-lu">${esc(x.lineup || "")}</span></div>`;
+  return `<div class="lb-tiles">${tile(r.championships, "Championships")}${tile(r.best_wins, "Best run (wins)")}${tile(`${r.wins}–${r.losses}`, "All-time W–L")}${tile(`${r.win_pct}%`, "Win rate")}${tile(r.runs, "Runs played")}${tile(ago(r.last_played), "Last played")}</div>
+    ${fav ? `<p class="lb-line"><b>Favorite goon:</b> ${esc(fav.name)} <small>(in ${fav.n} of ${runs.length} recent runs)</small></p>` : ""}
+    ${r.best_lineup ? `<p class="lb-line"><b>Best lineup:</b> ${esc(r.best_lineup)}</p>` : ""}
+    <div class="lb-runs"><h4>Recent runs</h4>${runs === null ? "<span class='lb-lu'>Loading…</span>" : runs === false ? "<span class='lb-lu'>Couldn't load recent runs.</span>" : runs.map(runRow).join("")}</div>`;
+}
+async function toggleCoach(btn, r) {
+  const d = btn.nextElementSibling;
+  const open = btn.getAttribute("aria-expanded") === "true";
+  btn.setAttribute("aria-expanded", String(!open));
+  d.hidden = open;
+  if (open || d.dataset.loaded) return;
+  d.dataset.loaded = "1";
+  d.innerHTML = coachStats(r, null);
+  let runs = false;
+  try { runs = await callLog("get_player_runs", { p_player: r.player, p_limit: 10 }); } catch {}
+  d.innerHTML = coachStats(r, runs);
+}
+function showLeaderboard() {
+  openMenu(`<div class="menu-page">${menuHead("Leaderboard", "Championships first, then best run", "Main menu")}
+    <div class="menu-scroll"><div class="lb" id="lb"><p class="lb-note">Loading the standings…</p></div></div></div>`);
+  $("m-back").onclick = showTitle;
+  callLog("get_leaderboard", { p_limit: 50 }).then((rows) => {
+    const box = $("lb");
+    if (!box) return; // they already left the screen
+    if (!rows.length) { box.innerHTML = `<p class="lb-note">Nobody's on the board yet. Finish a fight to get on it!</p>`; return; }
+    const medal = (n) => (n <= 3 ? ["🥇", "🥈", "🥉"][n - 1] : n);
+    box.innerHTML = `<div class="lb-head"><span>#</span><span>Coach</span><span title="Championships">🏆</span><span title="Most wins in one run">Best</span><span class="lb-wide">W–L</span><span class="lb-wide">Win %</span><span>Runs</span></div>` +
+      rows.map((r, i) => {
+        const me = sameName(r.player, settings.name);
+        return `<div class="lb-item${me ? " me" : ""}" style="animation-delay:${Math.min(i, 15) * 30}ms"><button class="lb-row" data-i="${i}" aria-expanded="false"><span class="lb-place">${medal(r.place)}</span><span class="lb-name">${esc(r.player)}${me ? '<span class="you">YOU</span>' : ""}<span class="chev">▶</span></span><span>${r.championships}</span><span>${r.best_wins}</span><span class="lb-wide">${r.wins}–${r.losses}</span><span class="lb-wide">${r.win_pct}%</span><span>${r.runs}</span></button><div class="lb-detail" hidden></div></div>`;
+      }).join("");
+    box.querySelectorAll(".lb-row").forEach((b) => { b.onclick = () => toggleCoach(b, rows[Number(b.dataset.i)]); });
+  }).catch(() => {
+    const box = $("lb");
+    if (!box) return;
+    box.innerHTML = `<p class="lb-note">Couldn't reach the leaderboard right now. Check your connection and try again.</p><button class="btn" id="lb-retry">Try again</button>`;
+    $("lb-retry").onclick = showLeaderboard;
+  });
 }
 
 function showSettings() {
