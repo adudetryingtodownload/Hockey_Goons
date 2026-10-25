@@ -620,7 +620,7 @@ window.HG = (() => {
                                         
                                       
                           
-                                                                                              
+                                                                                      
   
 
 function makeRng(seed        )      {
@@ -782,7 +782,7 @@ const GOONS            = [
     ability: { kind: "buffFrontToughness", amount: 2 },
     abilityText: "Start of fight: your front goon gets +2 toughness." },
 
-  // Tier 4 · round 7 · the heavy hitters
+  // Tier 4 · round 6 · the heavy hitters
   { id: "hammer", name: "The Hammer", tier: 4, punch: 6, toughness: 6,
     ability: { kind: "onKnockoutGainStats", amount: 2 },
     abilityText: "Knocks someone out: gains +2 punch and +2 toughness for this fight." },
@@ -847,7 +847,9 @@ const COACH_FROM_ROUND = 8;
 function shopSize(round        )                                                 {
   if (round <= 2) return { goons: 3, gear: 1, tiers: [1] };
   if (round <= 4) return { goons: 4, gear: 1, tiers: [1, 2] };
-  if (round <= 6) return { goons: 4, gear: 2, tiers: [1, 2, 3] };
+  if (round === 5) return { goons: 4, gear: 2, tiers: [1, 2, 3] };
+  // Tier 4 opens at round 6 (was round 7) so the heavy hitters get more time on the ice.
+  if (round === 6) return { goons: 4, gear: 2, tiers: [1, 2, 3, 4] };
   return { goons: 5, gear: 2, tiers: [1, 2, 3, 4] };
 }
 
@@ -1500,7 +1502,7 @@ function coachTiebreak(teamA           , teamB           , say                  
                          
                                                        
                                                                                     
-                                                                                                
+                                                                                                            
   
 
                                                     
