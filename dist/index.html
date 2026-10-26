@@ -571,6 +571,26 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Mode picker */
 .modes { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .portrait .modes { grid-template-columns: 1fr; }
+/* How to play and the first-run tutorial */
+.tut-card { max-width: 460px; max-height: 94%; overflow-y: auto; }
+.tut-art { height: 110px; display: flex; gap: 10px; align-items: flex-end; justify-content: center; }
+.tut-art img { height: 100%; width: auto; filter: drop-shadow(0 4px 3px rgba(0,0,0,.3)); }
+.tut-card h2 { font-size: clamp(24px, calc(4.4 * var(--vw)), 34px); }
+.tut-card p { color: var(--ink); text-align: left; line-height: 1.4; margin: 0; }
+.tut-dots { display: flex; gap: 8px; }
+.tut-dots span { width: 10px; height: 10px; border-radius: 50%; background: #c9ced8; border: 2px solid var(--ink); }
+.tut-dots span.on { background: var(--goal-red); }
+.short .tut-art { display: none; }
+.short .tut-card { padding: 14px 20px; gap: 8px; }
+.howto { max-width: 640px; margin: 0 auto; display: grid; gap: 12px; }
+.how-card { background: var(--board); color: var(--ink); border: 3px solid var(--ink); border-radius: 12px; padding: 12px 16px 14px; box-shadow: 4px 4px 0 rgba(0,0,0,.45); }
+.how-card h3 { margin: 0 0 4px; font-family: var(--font-display); font-weight: 400; font-size: 19px; }
+.how-card p { margin: 0 0 6px; line-height: 1.4; }
+.how-card p:last-child { margin-bottom: 0; }
+.how-card .pu, .how-card .to { display: inline-block; min-width: 1.5em; text-align: center; padding: 0 5px; border: 2px solid var(--ink); border-radius: 999px; font-weight: 800; font-size: .85em; }
+.how-card .pu { background: #ffb43a; }
+.how-card .to { background: #9cc8ff; }
+.howto .btn { justify-self: center; }
 .mode-card { position: relative; display: grid; gap: 6px; align-content: start; text-align: left; padding: 18px 18px 20px; font: inherit; color: var(--ink); background: var(--board); border: 3px solid var(--ink); border-radius: 14px; box-shadow: 5px 5px 0 rgba(0,0,0,.45); cursor: pointer; transition: transform .12s, box-shadow .12s; border-top: 12px solid #2e9e5b; }
 .mode-card.veteran { border-top-color: #3f7fd0; }
 .mode-card.allstar { border-top-color: #e0a92a; }
@@ -4009,7 +4029,8 @@ function showTitle() {
     <nav class="menu-buttons" aria-label="Main menu">
       <button class="mb primary" id="m-new">New game</button>
       <button class="mb" id="m-continue" ${saved ? "" : "disabled"}>Continue <small>${esc(record)}</small></button>
-      <button class="mb" id="m-leaders">Leaderboard</button>
+      <button class="mb half" id="m-leaders">Leaderboard</button>
+      <button class="mb half" id="m-help">Rules</button>
       <button class="mb half" id="m-goons">Goons</button>
       <button class="mb half" id="m-settings">Settings</button>
     </nav>
@@ -4039,6 +4060,7 @@ function showTitle() {
   };
   $("m-goons").onclick = showPacks;
   $("m-leaders").onclick = () => showLeaderboard();
+  $("m-help").onclick = showHowTo;
   $("m-settings").onclick = showSettings;
   $("m-new").focus();
 }
@@ -4097,6 +4119,53 @@ const MODE_INFO = {
   veteran: { tag: "Harder", text: "Smarter computer teams that sell, upgrade and use tier 4. Plus ghosts: real teams from other players at your round." },
   allstar: { tag: "Hardest", text: "Sharp computer teams with an extra puck every round, and ghosts of players whose runs went deep." },
 };
+// ---------- How to play and the first-run tutorial ----------
+const TUT_STEPS = [
+  { title: "Sign your goons", art: ["tommy", "eddie"], text: "Every round you get <b>10 pucks</b>. Goons cost <b>3</b>. Tap a goon in the shop, then tap a slot on the ice (or drag him there). Pucks you don't spend are lost, so use them." },
+  { title: "The front goon fights first", art: ["hammer-attack"], text: "Press <b>Fight</b> and your slot 1 goon trades punches with the rival's front goon. A punch takes away toughness. At 0 a goon is knocked out and the next one steps up. Put a tough goon up front, and tap any goon to read his ability." },
+  { title: "Stack, sell, reroll", art: ["randy", "gear-drink"], text: "Buy a goon you already own onto him to <b>stack</b> him: three copies make him level 2 (six, level 3) with a stronger ability. <b>Roll</b> the shop for 1 puck, <b>sell</b> to get pucks back, and <b>Freeze</b> keeps an offer for next round. Gear boosts one goon, or your whole team." },
+  { title: "Win the season", art: ["emblem"], text: "<b>Win 9 fights</b> to reach the championship final. <b>5 losses</b> end your run. If both teams are knocked out together, the coaches brawl and the team that did more damage wins. Good luck, coach!" },
+];
+function tutArt(ids) { return ids.map((id) => (ART[id] ? `<img src="${ART[id]}" alt="">` : "")).join(""); }
+// A short walkthrough: shown once before a player's first run, and again from How to play.
+function showTutorial(fromHelp = false) {
+  let i = 0;
+  const host = document.createElement("div");
+  host.className = "end tutorial";
+  const finish = () => { settings.tutorialDone = true; saveSettings(); host.remove(); };
+  const paint = () => {
+    const s = TUT_STEPS[i], last = i === TUT_STEPS.length - 1;
+    host.innerHTML = `<div class="card tut-card" role="dialog" aria-label="How to play">
+      <div class="tut-art">${tutArt(s.art)}</div>
+      <h2>${s.title}</h2>
+      <p>${s.text}</p>
+      <div class="tut-dots" aria-hidden="true">${TUT_STEPS.map((_, k) => `<span class="${k === i ? "on" : ""}"></span>`).join("")}</div>
+      <div class="actions" style="justify-content:center">${i ? '<button class="btn" id="tut-back">Back</button>' : ""}<button class="btn fight" id="tut-next">${last ? "Let's play" : "Next"}</button>${last ? "" : '<button class="btn" id="tut-skip">Skip</button>'}</div></div>`;
+    host.querySelector("#tut-next").onclick = () => { if (last) finish(); else { i++; paint(); } };
+    host.querySelector("#tut-back")?.addEventListener("click", () => { i--; paint(); });
+    host.querySelector("#tut-skip")?.addEventListener("click", finish);
+    host.querySelector("#tut-next").focus();
+  };
+  paint();
+  (fromHelp ? menu : $("app")).appendChild(host);
+}
+function showHowTo() {
+  const sec = (title, body) => `<section class="how-card"><h3>${title}</h3>${body}</section>`;
+  openMenu(`<div class="menu-page">${menuHead("How to play", "", "Main menu")}
+    <div class="menu-scroll"><div class="howto">
+      ${sec("The goal", "<p>Win <b>9 fights</b> to reach the championship final, then beat the champions. <b>5 losses</b> end your run. A dead heat counts as neither a win nor a loss.</p>")}
+      ${sec("The shop (every round)", "<p>You start every round with <b>10 pucks</b>, and pucks you don't spend are lost. A goon or a piece of gear costs <b>3</b>, a reroll <b>1</b>. Selling a goon gives you <b>1</b> back (plus 1 more per level above 1). <b>Freeze</b> keeps one offer for next round.</p><p>The shop gets bigger and stronger as the season goes on: tier 1 goons first, tier 4 heavy hitters from round 6. Every card shows its tier.</p>")}
+      ${sec("Your lineup", "<p>Five slots; slot 1 is the front. Tap a goon and then a slot, or drag, to place him; drag goons around to reorder. <b>Order matters</b>: some abilities hit the enemy's front goon, some buff the goon in front of or behind them, and some fire when a teammate goes down. Tap or hover any goon to read his ability.</p>")}
+      ${sec("How a fight works", "<p>First, every start-of-fight ability goes off. Then the two front goons hit each other at the same time: a goon's <span class='pu'>punch</span> takes that much off the other's <span class='to'>toughness</span>. At 0 he's knocked out and the next goon steps up. The last team standing wins. Damage doesn't carry over to the next round.</p>")}
+      ${sec("Leveling up", "<p>Buy a goon you already own and drop him on his twin to <b>stack</b> him. <b>3 copies make level 2, 6 copies make level 3.</b> Every copy adds +1/+1, and his ability gets stronger with each level.</p>")}
+      ${sec("Gear", "<p>Drag gear onto a goon. Some gear is a permanent boost, some lasts one fight (Mouthguard, Pep Talk and Chirp, which work on the whole team), and some is worn until it's used up (Birdcage, Foil, Smelling Salts).</p>")}
+      ${sec("Ties and long fights", "<p>If both teams are knocked out together, the <b>coaches brawl</b> and the team that did more damage wins. Equal damage is a draw. If a fight drags on, the goons get tired: after 12 exchanges both front goons take more damage every exchange (<b>overtime</b>), so nothing stalls forever.</p>")}
+      ${sec("The leagues", "<p><b>Rookie</b> is the classic game. <b>Veteran</b> has smarter computer teams and other players' ghosts. <b>All-Star</b> adds an extra puck for the computer teams every round. Pick one each time you start a new game.</p>")}
+      <button class="btn" id="how-tut">Show the quick walkthrough</button>
+    </div></div></div>`);
+  $("m-back").onclick = showTitle;
+  $("how-tut").onclick = () => showTutorial(true);
+}
 function askMode() {
   const pick = settings.mode || "rookie";
   openMenu(`<div class="menu-page">${menuHead("Pick your league", "", "Back")}
@@ -4268,6 +4337,7 @@ function newGame(mode = settings.mode || "rookie") {
   startRunId();
   logRun();
   render();
+  if (!settings.tutorialDone) showTutorial();
 }
 
 showTitle();
